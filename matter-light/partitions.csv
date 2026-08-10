@@ -1,0 +1,18 @@
+# Name,   Type, SubType, Offset,  Size, Flags
+# Note: Firmware partition offset needs to be 64K aligned, initial 36K (9 sectors) are reserved for bootloader and partition table
+esp_secure_cert,  0x3F, ,0xd000,    0x2000, encrypted
+nvs,      data, nvs,     0x10000,   0xC000,
+nvs_keys, data, nvs_keys,,          0x1000, encrypted
+otadata,  data, ota,     ,          0x2000
+phy_init, data, phy,     ,          0x1000,
+# App partitions must be 64K-aligned in both offset and size. 0x1F0000 is the
+# smallest 64K multiple that fits the current ~1.93MB firmware image. With
+# CONFIG_ENABLE_OTA_REQUESTOR=y requiring dual-bank OTA, two of these exactly
+# fill the XIAO ESP32C6's 4MB flash to the last byte -- zero margin anywhere.
+# The unused `fctry`/`coredump` partitions (not referenced anywhere in this
+# project's code, and RainMaker isn't enabled) were removed to make room.
+# There is no more free space: any further growth in the firmware needs this
+# table revisited (e.g. shrinking nvs, or trimming enabled esp-matter/IDF
+# features to reduce binary size).
+ota_0,    app,  ota_0,   0x20000,   0x1F0000,
+ota_1,    app,  ota_1,   0x210000,  0x1F0000,
