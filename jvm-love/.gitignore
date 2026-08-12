@@ -1,0 +1,20 @@
+# Vendored swift-java checkout -- `make setup` clones this at a pinned
+# commit; it is not meant to be committed (see README -> Versions).
+/vendor/swift-java/
+
+# Gradle
+.gradle/
+build/
+kotlin/app/build/
+
+# SwiftPM
+.build/
+.swiftpm/
+swift/JvmLoveTrie/Package.resolved
+
+# Kotlin daemon / IDE
+.kotlin/
+.idea/
+*.iml
+
+.DS_Store
