@@ -1,0 +1,52 @@
+name: Shop
+options:
+  bundleIdPrefix: com.devworld
+  deploymentTarget:
+    iOS: "17.0"
+packages:
+  ShopSDK:
+    path: ../shop-sdk
+targets:
+  Shop:
+    type: application
+    platform: iOS
+    sources:
+      - path: Shop
+    dependencies:
+      - package: ShopSDK
+        product: ShopSDK
+    info:
+      path: Generated/Info.plist
+      properties:
+        UILaunchScreen: {}
+        CFBundleDisplayName: Shop
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.devworld.shop
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: NO
+  ShopUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: ShopUITests
+    dependencies:
+      - target: Shop
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.devworld.shop.uitests
+        SWIFT_VERSION: "6.0"
+        TEST_TARGET_NAME: Shop
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  Shop:
+    build:
+      targets:
+        Shop: all
+        ShopUITests: [test]
+    test:
+      targets:
+        - ShopUITests
+    run:
+      config: Debug

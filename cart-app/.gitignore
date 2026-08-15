@@ -1,0 +1,25 @@
+# Swift / SPM
+.build/
+.swiftpm/
+*.o
+*.so
+
+# Xcode
+ios/Shop.xcodeproj/
+ios/Generated/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# Android / Gradle
+.gradle/
+android/**/build/
+android/local.properties
+android/app/src/main/jniLibs/
+android/.idea/
+android/.kotlin/
+*.iml
+android/captures/
+
+# macOS
+.DS_Store

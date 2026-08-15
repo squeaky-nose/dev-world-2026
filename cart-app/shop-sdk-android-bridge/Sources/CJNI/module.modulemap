@@ -1,0 +1,5 @@
+module CJNI [system] {
+    header "shim.h"
+    link "log"
+    export *
+}
