@@ -1,3 +1,10 @@
+//
+//  TrieNode.kt
+//  jvm-love
+//
+//  Created by Sushant Verma on 15/8/2026 for [/dev/world 2026](https://devworld.au/)
+//
+
 package love.jvm.trie
 
 /**

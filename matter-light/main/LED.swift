@@ -1,3 +1,10 @@
+//
+//  LED.swift
+//  matter-light
+//
+//  Created by Sushant Verma on 18/8/2026 for [/dev/world 2026](https://devworld.au/)
+//
+
 // Controls the ESP32-C6 LED via a plain GPIO digital output (on/off only).
 struct LED {
   var ledPin: gpio_num_t

@@ -1,3 +1,10 @@
+//
+//  MatterInterface.h
+//  matter-light
+//
+//  Created by Sushant Verma on 18/8/2026 for [/dev/world 2026](https://devworld.au/)
+//
+
 // GNU C++ interfaces do not work well with Swift for certain types, so let's use some simple C++ shims.
 // For example, uint32_t gets imported as UInt and not CUnsignedLong (as defined in ESP IDF).
 namespace esp_matter {

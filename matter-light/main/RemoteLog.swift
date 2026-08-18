@@ -1,3 +1,10 @@
+//
+//  RemoteLog.swift
+//  matter-light
+//
+//  Created by Sushant Verma on 18/8/2026 for [/dev/world 2026](https://devworld.au/)
+//
+
 // Remote logging: poll a mock endpoint every 5s to see whether logging is
 // currently enabled, and POST a JSON log message whenever the light's on/off
 // state changes while enabled. Uses esp_http_client's C API directly rather
@@ -101,34 +108,6 @@ func httpPost(url: String, jsonBody: String) {
   }
 }
 
-// ASCII case-insensitive substring search, done at the byte level: Embedded
-// Swift's stdlib doesn't link in String.contains(_:) for substring search
-// (only the single-Character overload) or String.lowercased() (Unicode
-// case-folding tables aren't linked into this freestanding build), same
-// reason hello-world/main/Main.swift operates on .utf8 bytes instead of
-// Characters.
-private func asciiToLower(_ byte: UInt8) -> UInt8 {
-  (byte >= UInt8(ascii: "A") && byte <= UInt8(ascii: "Z")) ? byte + 32 : byte
-}
-
-private func containsCaseInsensitive(_ haystack: String, _ needle: String) -> Bool {
-  let h = Array(haystack.utf8)
-  let n = Array(needle.utf8)
-  if n.isEmpty { return true }
-  if n.count > h.count { return false }
-  for start in 0...(h.count - n.count) {
-    var matched = true
-    for i in 0..<n.count {
-      if asciiToLower(h[start + i]) != asciiToLower(n[i]) {
-        matched = false
-        break
-      }
-    }
-    if matched { return true }
-  }
-  return false
-}
-
 final class RemoteLogger {
   /// GET endpoint polled every 5s to check whether logging is enabled.
   let pollURL: String
@@ -145,15 +124,26 @@ final class RemoteLogger {
   }
 
   // Call every 5s. Determines whether logging is enabled from the GET
-  // response body text ("true"/"false" substring, case-insensitive). If
-  // neither is present, the previous value is left unchanged.
+  // response's "enabled" JSON boolean field. If the field is missing, not a
+  // boolean, or the response fails to parse as JSON, the previous value is
+  // left unchanged.
   func poll() {
     let body = httpGet(url: pollURL)
-    if containsCaseInsensitive(body, "false") {
-      loggingEnabled = false
-    } else if containsCaseInsensitive(body, "true") {
-      loggingEnabled = true
+
+    guard let root = body.withCString({ cJSON_Parse($0) }) else {
+      print("RemoteLogger.poll: JSON parse failed")
+      return
     }
+    defer { cJSON_Delete(root) }
+
+    guard let enabledItem = cJSON_GetObjectItemCaseSensitive(root, "enabled"),
+      cJSON_IsBool(enabledItem) != 0
+    else {
+      print("RemoteLogger.poll: missing or non-boolean \"enabled\" field")
+      return
+    }
+
+    loggingEnabled = cJSON_IsTrue(enabledItem) != 0
     print("RemoteLogger.poll: loggingEnabled=\(loggingEnabled)")
   }
 
@@ -161,7 +151,33 @@ final class RemoteLogger {
   func logStateChange(on: Bool) {
     guard loggingEnabled else { return }
     let uptimeMs = Int(esp_timer_get_time() / 1000)
-    let json = "{\"state\": \"\(on ? "on" : "off")\", \"uptime_ms\": \(uptimeMs)}"
-    httpPost(url: logURL, jsonBody: json)
+    let stateString = on ? "on" : "off"
+
+    guard let root = cJSON_CreateObject() else {
+      print("RemoteLogger.logStateChange: cJSON_CreateObject failed")
+      return
+    }
+    defer { cJSON_Delete(root) }
+
+    let addedState = stateString.withCString { cState in
+      cJSON_AddStringToObject(root, "state", cState) != nil
+    }
+    guard addedState else {
+      print("RemoteLogger.logStateChange: AddStringToObject failed")
+      return
+    }
+    guard cJSON_AddNumberToObject(root, "uptime_ms", Double(uptimeMs)) != nil
+    else {
+      print("RemoteLogger.logStateChange: AddNumberToObject failed")
+      return
+    }
+
+    guard let cJsonString = cJSON_PrintUnformatted(root) else {
+      print("RemoteLogger.logStateChange: PrintUnformatted failed")
+      return
+    }
+    defer { cJSON_free(cJsonString) }
+
+    httpPost(url: logURL, jsonBody: String(cString: cJsonString))
   }
 }

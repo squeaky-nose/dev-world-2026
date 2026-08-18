@@ -1,4 +1,11 @@
-# Build/flash workflow for the hello-world Embedded Swift firmware.
+#
+#  Makefile
+#  hello-morse
+#
+#  Created by Sushant Verma on 18/8/2026 for [/dev/world 2026](https://devworld.au/)
+#
+
+# Build/flash workflow for the hello-morse Embedded Swift firmware.
 
 ESP_IDF_DIR ?= $(HOME)/.espressif/v6.0.2/esp-idf
 

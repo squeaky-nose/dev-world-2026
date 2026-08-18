@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+#
+#  deploy.sh
+#  hello-morse
+#
+#  Created by Sushant Verma on 18/8/2026 for [/dev/world 2026](https://devworld.au/)
+#
+
 # Build and flash the firmware to a connected ESP32-C6 board.
 #
 # Usage:

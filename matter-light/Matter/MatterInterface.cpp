@@ -1,3 +1,10 @@
+//
+//  MatterInterface.cpp
+//  matter-light
+//
+//  Created by Sushant Verma on 18/8/2026 for [/dev/world 2026](https://devworld.au/)
+//
+
 #include "BridgingHeader.h"
 #include <setup_payload/OnboardingCodesUtil.h>
 #include <cstring>

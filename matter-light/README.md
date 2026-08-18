@@ -121,6 +121,20 @@ let remoteLogger = RemoteLogger(
 `pollURL` is a **GET** endpoint, hit every 5s to check whether logging is currently enabled
 (`RemoteLogger.poll()`). `logURL` is a **POST** endpoint, hit with a JSON body whenever the
 light's on/off state changes while logging is enabled (`RemoteLogger.logStateChange(on:)`).
+Both bodies are built/parsed with [cJSON](https://github.com/DaveGamble/cJSON) (already a
+resolved dependency via esp-matter, see Versions), not hand-rolled string handling.
+
+`pollURL`'s response must be a JSON object with an `"enabled"` boolean field, e.g.:
+```json
+{"enabled": true}
+```
+If the field is missing, not a JSON boolean, or the response fails to parse as JSON at all,
+`RemoteLogger` leaves the previously-known `loggingEnabled` value unchanged.
+
+Each `logURL` POST body is a JSON object shaped like:
+```json
+{"state": "on", "uptime_ms": 12345}
+```
 
 These currently point at a [RequestBin](https://requestbin.net) mock endpoint, viewable at:
 https://requestbin.net/bins/mock/1af750ca-a85f-4ee2-b0e2-a572e7799f7f
@@ -129,6 +143,11 @@ https://requestbin.net/bins/mock/1af750ca-a85f-4ee2-b0e2-a572e7799f7f
 building this project should replace `pollURL`/`logURL` in `Main.swift` with their own
 endpoint (e.g. a fresh RequestBin, or a real logging server) before relying on remote logging —
 otherwise state changes go nowhere useful, or leak into someone else's bin.
+
+**If you're using a RequestBin mock for `pollURL`,** its configured mock response must be
+updated to return a JSON object like `{"enabled": true}` (or `{"enabled": false}`) instead of
+freeform text — `RemoteLogger.poll()` now parses the response as JSON rather than
+substring-matching "true"/"false" anywhere in the raw text.
 
 ## How the Makefile works
 

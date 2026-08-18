@@ -1,3 +1,10 @@
+//
+//  Attribute.swift
+//  matter-light
+//
+//  Created by Sushant Verma on 18/8/2026 for [/dev/world 2026](https://devworld.au/)
+//
+
 protocol MatterAttribute {
   var attribute: UnsafeMutablePointer<esp_matter.attribute_t> { get }
 

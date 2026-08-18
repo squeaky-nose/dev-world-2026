@@ -1,3 +1,10 @@
+//
+//  AVLScrabbleTrie.swift
+//  jvm-love
+//
+//  Created by Sushant Verma on 15/8/2026 for [/dev/world 2026](https://devworld.au/)
+//
+
 import Foundation
 
 /// A trie (prefix tree) whose children at every node are stored in their own

@@ -1,13 +1,9 @@
-//===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift open source project
+//  Logger.swift
+//  hello-morse
 //
-// Copyright (c) 2024 Apple Inc. and the Swift project authors.
-// Licensed under Apache License v2.0 with Runtime Library Exception
+//  Created by Sushant Verma on 18/8/2026 for [/dev/world 2026](https://devworld.au/)
 //
-// See https://swift.org/LICENSE.txt for license information
-//
-//===----------------------------------------------------------------------===//
 
 // A small shim shaped like `os.Logger` (from Apple's `import os`), backed by
 // ESP-IDF's `esp_log.h` instead of Darwin's unified logging. `os.log` itself

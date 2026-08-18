@@ -1,3 +1,10 @@
+//
+//  Main.swift
+//  matter-light
+//
+//  Created by Sushant Verma on 18/8/2026 for [/dev/world 2026](https://devworld.au/)
+//
+
 @_cdecl("app_main")
 func main() {
   print("Hello, Embedded Swift! (Matter Smart Light on ESP32-C6)")

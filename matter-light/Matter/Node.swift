@@ -1,3 +1,10 @@
+//
+//  Node.swift
+//  matter-light
+//
+//  Created by Sushant Verma on 18/8/2026 for [/dev/world 2026](https://devworld.au/)
+//
+
 protocol MatterNode {
   var node: UnsafeMutablePointer<esp_matter.node_t> { get }
 }

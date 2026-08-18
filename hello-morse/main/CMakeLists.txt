@@ -1,3 +1,10 @@
+#
+#  CMakeLists.txt
+#  hello-morse
+#
+#  Created by Sushant Verma on 18/8/2026 for [/dev/world 2026](https://devworld.au/)
+#
+
 # ==============================================================================
 # ESP-IDF Component Configuration for Swift-Based Applications
 # ==============================================================================

@@ -1,3 +1,10 @@
+//
+//  BridgingHeader.h
+//  matter-light
+//
+//  Created by Sushant Verma on 18/8/2026 for [/dev/world 2026](https://devworld.au/)
+//
+
 // C standard library
 // ==================
 
@@ -20,6 +27,7 @@
 #include <esp_http_client.h>
 #include <esp_timer.h>
 #include <esp_err.h>
+#include "cJSON.h"
 
 // esp_crt_bundle.h pulls in mbedtls's build_info.h, which fails to parse
 // during the Swift bridging-header PCH generation pass specifically (a
