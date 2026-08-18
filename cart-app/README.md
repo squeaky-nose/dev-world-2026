@@ -28,7 +28,7 @@ The Android app's `ShopSdkBridge` object calls `nativeGetProducts`, `nativeAddTo
 3. Shipping is $10, free if the merchandise total exceeds $30.
 4. Checkout POSTs the cart (line items + totals + promo code) as JSON to a fixed endpoint.
 
-57 products across four tags (fruit, vegetable, dairy, pantry), each with a real Wikipedia/Wikimedia Commons image, a description, recipe ideas, a price, and a hardcoded popularity score (0–1) — seeded in `shop-sdk/Sources/ShopSDK/Catalog/ProductCatalog.swift`. The Products screen filters by tag and sorts by popularity (default), A–Z, or Z–A, both driven entirely by `shop-sdk` — the dropdown option lists come from `ShopSDK.allTags()`/`allSortOptions()`, so neither app needed UI changes when dairy/pantry were added.
+61 products across five tags (fruit, vegetable, dairy, pantry, construction), each with a real Wikipedia/Wikimedia Commons image, a description, a price, and a hardcoded popularity score (0–1) — seeded in `shop-sdk/Sources/ShopSDK/Catalog/ProductCatalog.swift`. Food products also carry recipe ideas; the four construction products (hammer, anvil, screwdriver, nails) omit them, and both apps hide the "Recipe ideas" section when the list is empty. The Products screen filters by tag and sorts by popularity (default), A–Z, or Z–A, both driven entirely by `shop-sdk` — the dropdown option lists come from `ShopSDK.allTags()`/`allSortOptions()`, so neither app needed UI changes when dairy/pantry/construction were added.
 
 ## Prerequisites
 

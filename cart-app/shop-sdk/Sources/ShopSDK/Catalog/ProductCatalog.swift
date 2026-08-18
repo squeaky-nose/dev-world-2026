@@ -585,5 +585,45 @@ enum ProductCatalog {
             recipeIdeas: ["Crispy fried chicken", "Stir-fried vegetables", "Homemade salad dressing"],
             popularity: 0.80
         ),
+        Product(
+            id: "hammer",
+            name: "Hammer",
+            description: "A claw hammer with a steel head and cushioned grip, for driving and pulling nails.",
+            imageURL: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Stanley_graphite_claw_hammer.jpg/1280px-Stanley_graphite_claw_hammer.jpg",
+            unitPrice: 18.00,
+            tags: [.construction],
+            recipeIdeas: [],
+            popularity: 0.75
+        ),
+        Product(
+            id: "anvil",
+            name: "Anvil",
+            description: "A heavy steel block with a flattened top, used as a solid work surface for hammering and shaping metal.",
+            imageURL: "https://img.vevorstatic.com/us%2FGZHSBDD110LBSL3X3V0%2Fgoods_img_big-v9%2Fanvil-blacksmith-m100-1.2.jpg?timestamp=1744081843000&format=webp&format=webp",
+            unitPrice: 150.00,
+            tags: [.construction],
+            recipeIdeas: [],
+            popularity: 0.30
+        ),
+        Product(
+            id: "screwdriver",
+            name: "Screwdriver",
+            description: "A cushion-grip screwdriver for turning screws, sold as a set of common flathead and Phillips tips.",
+            imageURL: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Craftsman_cushion_grip_screwdrivers.jpg/1280px-Craftsman_cushion_grip_screwdrivers.jpg",
+            unitPrice: 9.50,
+            tags: [.construction],
+            recipeIdeas: [],
+            popularity: 0.78
+        ),
+        Product(
+            id: "nails",
+            name: "Nails",
+            description: "A box of steel nails for general woodworking and construction fastening.",
+            imageURL: "https://upload.wikimedia.org/wikipedia/commons/8/8e/Nails.jpg",
+            unitPrice: 4.50,
+            tags: [.construction],
+            recipeIdeas: [],
+            popularity: 0.70
+        ),
     ]
 }

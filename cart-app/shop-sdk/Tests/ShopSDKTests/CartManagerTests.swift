@@ -78,7 +78,7 @@ struct ShopSDKFacadeTests {
     @Test("Full flow: browse, filter, add to cart, apply promo, compute totals")
     func fullFlow() throws {
         let sdk = ShopSDK()
-        #expect(sdk.products().count == 57)
+        #expect(sdk.products().count == 61)
         #expect(sdk.products(matching: [.fruit]).allSatisfy { $0.tags.contains(.fruit) })
 
         try sdk.addToCart(productId: "bananas", quantity: 6)

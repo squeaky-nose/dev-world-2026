@@ -11,10 +11,10 @@ import Testing
 @Suite("ProductCatalogStore")
 struct ProductCatalogStoreTests {
 
-    @Test("Catalog has exactly 57 products")
+    @Test("Catalog has exactly 61 products")
     func productCount() {
         let store = ProductCatalogStore()
-        #expect(store.products(matching: [], sortedBy: .popularity).count == 57)
+        #expect(store.products(matching: [], sortedBy: .popularity).count == 61)
     }
 
     @Test("All product ids are unique")
@@ -24,23 +24,25 @@ struct ProductCatalogStoreTests {
         #expect(Set(ids).count == ids.count)
     }
 
-    @Test("Every product has exactly one tag, a non-empty description, image URL, at least one recipe idea, and a popularity score in 0...1")
+    @Test("Every product has exactly one tag, a non-empty description, image URL, and a popularity score in 0...1; food products also have at least one recipe idea")
     func productDataIntegrity() {
         let store = ProductCatalogStore()
         for product in store.products(matching: [], sortedBy: .popularity) {
             #expect(!product.tags.isEmpty)
             #expect(!product.description.isEmpty)
             #expect(product.imageURL.hasPrefix("https://"))
-            #expect(!product.recipeIdeas.isEmpty)
+            if !product.tags.contains(.construction) {
+                #expect(!product.recipeIdeas.isEmpty)
+            }
             #expect(product.unitPrice > 0)
             #expect(product.popularity >= 0 && product.popularity <= 1)
         }
     }
 
-    @Test("allTags returns fruit, vegetable, dairy, and pantry")
+    @Test("allTags returns fruit, vegetable, dairy, pantry, and construction")
     func tagsList() {
         let store = ProductCatalogStore()
-        #expect(Set(store.allTags()) == [.fruit, .vegetable, .dairy, .pantry])
+        #expect(Set(store.allTags()) == [.fruit, .vegetable, .dairy, .pantry, .construction])
     }
 
     @Test("allSortOptions returns popularity, nameAscending, nameDescending")
@@ -64,8 +66,9 @@ struct ProductCatalogStoreTests {
         let vegetables = store.products(matching: [.vegetable], sortedBy: .popularity)
         let dairy = store.products(matching: [.dairy], sortedBy: .popularity)
         let pantry = store.products(matching: [.pantry], sortedBy: .popularity)
+        let construction = store.products(matching: [.construction], sortedBy: .popularity)
         #expect(fruit.allSatisfy { $0.tags.contains(.fruit) })
-        #expect(fruit.count + vegetables.count + dairy.count + pantry.count == 57)
+        #expect(fruit.count + vegetables.count + dairy.count + pantry.count + construction.count == 61)
     }
 
     @Test("Filtering by dairy and pantry returns only their respective products")
@@ -77,6 +80,15 @@ struct ProductCatalogStoreTests {
         #expect(dairy.allSatisfy { $0.tags.contains(.dairy) })
         #expect(pantry.count == 8)
         #expect(pantry.allSatisfy { $0.tags.contains(.pantry) })
+    }
+
+    @Test("Filtering by construction returns only the four hardware products")
+    func filterByConstruction() {
+        let store = ProductCatalogStore()
+        let construction = store.products(matching: [.construction], sortedBy: .popularity)
+        #expect(construction.count == 4)
+        #expect(construction.allSatisfy { $0.tags.contains(.construction) })
+        #expect(Set(construction.map(\.id)) == ["hammer", "anvil", "screwdriver", "nails"])
     }
 
     @Test("Lookup by id returns the matching product, unknown id returns nil")

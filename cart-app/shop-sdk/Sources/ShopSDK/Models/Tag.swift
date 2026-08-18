@@ -10,4 +10,5 @@ public enum Tag: String, Codable, CaseIterable, Sendable {
     case vegetable
     case dairy
     case pantry
+    case construction
 }
