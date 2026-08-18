@@ -110,13 +110,133 @@ private func avlFind(_ root: Node?, _ character: Character) -> Node? {
     return nil
 }
 
-/// Result of a single `SwiftAVLTrie.contains` lookup: whether the word was
-/// found, plus how long the lookup itself took, measured inside Swift with
+extension Node {
+    /// In-order walk of this node's children-AVL-tree, yielding every child actually present.
+    func children() -> [Node] {
+        var result: [Node] = []
+        func visit(_ node: Node?) {
+            guard let node else { return }
+            visit(node.left)
+            result.append(node)
+            visit(node.right)
+        }
+        visit(childrenRoot)
+        return result
+    }
+}
+
+/// One character position in a wildcard pattern.
+enum Token {
+    case literal(Character)
+    /// Matches exactly one wildcard letter, drawn from the rack.
+    case single
+    /// Matches one or more consecutive wildcard letters, all drawn from the rack.
+    case multi
+}
+
+func tokenize(_ pattern: String) -> [Token] {
+    pattern.map { char in
+        switch char {
+        case "_": return .single
+        case "*": return .multi
+        default: return .literal(Character(char.lowercased()))
+        }
+    }
+}
+
+/// Backtracking match of `tokens` against the trie, starting at `node` and
+/// `tokenIndex`. A literal token follows its one matching child; `.single`
+/// branches into every child currently affordable from `rack`; `.multi`
+/// delegates to `matchMulti`. A full match requires the token sequence to be
+/// exhausted exactly at a node with `isEndOfWord` -- an anchored, whole-word
+/// match, not a prefix search. `seen` de-dupes: when two wildcard tokens sit
+/// adjacent with no literal anchor between them, the same word is reachable
+/// via more than one split point.
+private func matchExact(
+    _ node: Node,
+    _ tokens: [Token],
+    _ tokenIndex: Int,
+    _ rack: inout [Character: Int],
+    _ wordSoFar: String,
+    _ seen: inout Set<String>,
+    _ results: inout [String]
+) {
+    if tokenIndex == tokens.count {
+        if node.isEndOfWord, seen.insert(wordSoFar).inserted {
+            results.append(wordSoFar)
+        }
+        return
+    }
+    switch tokens[tokenIndex] {
+    case .literal(let char):
+        guard let child = avlFind(node.childrenRoot, char) else { return }
+        matchExact(child, tokens, tokenIndex + 1, &rack, wordSoFar + String(char), &seen, &results)
+    case .single:
+        for child in node.children() {
+            let remaining = rack[child.character] ?? 0
+            if remaining > 0 {
+                rack[child.character] = remaining - 1
+                matchExact(child, tokens, tokenIndex + 1, &rack, wordSoFar + String(child.character), &seen, &results)
+                rack[child.character] = remaining
+            }
+        }
+    case .multi:
+        matchMulti(node, tokens, tokenIndex, &rack, wordSoFar, &seen, &results)
+    }
+}
+
+/// Consumes one or more characters under the `*` token at `tokenIndex`. Each
+/// child affordable from `rack` is tried both ways -- stop the `*` here and
+/// advance to the next token (via `matchExact`), or keep consuming more
+/// under this same `*` -- so every valid split point is explored.
+private func matchMulti(
+    _ node: Node,
+    _ tokens: [Token],
+    _ tokenIndex: Int,
+    _ rack: inout [Character: Int],
+    _ wordSoFar: String,
+    _ seen: inout Set<String>,
+    _ results: inout [String]
+) {
+    for child in node.children() {
+        let remaining = rack[child.character] ?? 0
+        if remaining > 0 {
+            rack[child.character] = remaining - 1
+            matchExact(child, tokens, tokenIndex + 1, &rack, wordSoFar + String(child.character), &seen, &results)
+            matchMulti(child, tokens, tokenIndex, &rack, wordSoFar + String(child.character), &seen, &results)
+            rack[child.character] = remaining
+        }
+    }
+}
+
+/// Result of a `SwiftAVLTrie.findExactMatches` search: the matched words
+/// plus how long the search itself took, measured inside Swift with
 /// `ContinuousClock` -- i.e. excluding the FFM downcall/marshalling overhead
-/// that a caller's own timer around the whole call would include.
-public struct LookupResult {
-    public let found: Bool
-    public let lookupTimeMillis: Double
+/// a caller's own timer around the whole call would include. Models the
+/// word list as indexed getters (`wordCount()`/`word(at:)`) rather than
+/// returning a Swift `Array` directly -- jextract's FFM mode does not support
+/// extracting collection-typed return values, only scalars/strings/nominal
+/// types with scalar/string members.
+public final class WordSearchResult {
+    private let words: [String]
+    private let timeMillis: Double
+
+    init(words: [String], searchTimeMillis: Double) {
+        self.words = words
+        self.timeMillis = searchTimeMillis
+    }
+
+    public func wordCount() -> Int {
+        words.count
+    }
+
+    public func word(at index: Int) -> String {
+        words[index]
+    }
+
+    public func searchTimeMillis() -> Double {
+        timeMillis
+    }
 }
 
 /// The Swift half of the two independent "self-balancing trie" demos in this
@@ -166,27 +286,24 @@ public final class SwiftAVLTrie {
         lastBuildTimeMillis = Date().timeIntervalSince(start) * 1000
     }
 
-    /// Times only the lookup walk itself, natively in Swift, using
-    /// `ContinuousClock` for nanosecond-scale resolution (`Date` is too
-    /// coarse at the microsecond scale these lookups run at). Callers can
-    /// compare `LookupResult.lookupTimeMillis` against their own wall-clock
-    /// measurement of the call into `contains` to see the FFM crossing's
-    /// overhead.
-    public func contains(_ word: String) -> LookupResult {
+    /// Dictionary words that fully match `pattern` end-to-end -- literal
+    /// characters match exactly, `_` matches exactly one wildcard letter and
+    /// `*` matches one or more, every wildcard letter drawn from `rack`
+    /// (each rack letter usable at most once per candidate word). An
+    /// all-literal pattern with an empty rack degenerates to a plain
+    /// membership check. Times only the search itself, natively, using
+    /// `ContinuousClock` -- see `WordSearchResult`.
+    public func findExactMatches(_ pattern: String, _ rack: String) -> WordSearchResult {
         let start = clock.now
-        let found = lookup(word)
-        return LookupResult(found: found, lookupTimeMillis: millis(since: start))
-    }
-
-    private func lookup(_ word: String) -> Bool {
-        var node = root
-        for character in word.lowercased() {
-            guard let next = avlFind(node.childrenRoot, character) else {
-                return false
-            }
-            node = next
+        let tokens = tokenize(pattern)
+        var rackCounts: [Character: Int] = [:]
+        for char in rack.lowercased() { rackCounts[char, default: 0] += 1 }
+        var seen: Set<String> = []
+        var results: [String] = []
+        if !tokens.isEmpty {
+            matchExact(root, tokens, 0, &rackCounts, "", &seen, &results)
         }
-        return node.isEndOfWord
+        return WordSearchResult(words: results, searchTimeMillis: millis(since: start))
     }
 
     private func millis(since start: ContinuousClock.Instant) -> Double {

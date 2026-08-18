@@ -15,7 +15,7 @@ SWIFT_JAVA_REPO := https://github.com/swiftlang/swift-java.git
 SWIFT_JAVA_COMMIT := 2dd2c6043f63d0d2cd99dfdcc8f058949f0309f3
 VENDOR_DIR := vendor/swift-java
 
-WORDS ?= /usr/share/dict/words
+WORDS ?= ospd.txt
 
 .PHONY: all help setup build run clean distclean
 
@@ -25,7 +25,7 @@ help:
 	@echo "Available targets:"
 	@echo "  make setup        clone+pin vendor/swift-java and publish its Swift/JVM interop libraries to ~/.m2 (one-time; re-run after 'make distclean')"
 	@echo "  make build        compile the Swift trie dylib, generate+compile its Java bindings, and compile the Kotlin app"
-	@echo "  make run          build (if needed) and run interactively; WORDS=<path> selects the word list (default: /usr/share/dict/words)"
+	@echo "  make run          build (if needed) and run interactively; WORDS=<path> selects the word list (default: ospd.txt)"
 	@echo "  make clean        remove Kotlin/Swift build artifacts (keeps vendor/swift-java and ~/.m2)"
 	@echo "  make distclean    clean, plus remove vendor/swift-java (forces 'make setup' to re-clone+re-publish)"
 
@@ -45,7 +45,7 @@ setup:
 # installDist (not plain `gradle run`) so the run target below can invoke the
 # generated launcher script directly: Gradle's `run` task doesn't forward the
 # calling shell's stdin to the forked JVM by default, which breaks the
-# interactive word-lookup loop when input is piped in.
+# interactive query loop when input is piped in.
 build:
 	@if [ ! -d "$(VENDOR_DIR)" ]; then \
 		echo "error: $(VENDOR_DIR) not found -- run 'make setup' first" >&2; \

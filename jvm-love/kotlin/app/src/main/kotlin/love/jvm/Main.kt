@@ -1,11 +1,13 @@
 package love.jvm
 
-import love.jvm.swifttrie.LookupResult
 import love.jvm.swifttrie.SwiftAVLTrie
+import love.jvm.swifttrie.WordSearchResult
 import love.jvm.trie.AvlTrie
 import org.swift.swiftkit.ffm.AllocatingSwiftArena
 import kotlin.system.exitProcess
 import kotlin.system.measureNanoTime
+
+private const val MAX_DISPLAY_RESULTS = 20
 
 /**
  * One JVM process hosting two independent, from-scratch "self-balancing
@@ -14,6 +16,11 @@ import kotlin.system.measureNanoTime
  * bindings (see the README's Architecture section). Neither backend ever
  * runs as a separate OS process -- the Swift code is a dynamic library
  * loaded directly into this JVM.
+ *
+ * Interactive queries are Scrabble-style: `<pattern> [rack]`, where `pattern`
+ * mixes literal letters with `_` (exactly one wildcard letter) and `*` (one
+ * or more), every wildcard letter drawn from `rack` -- see README's "Query
+ * grammar" section.
  */
 fun main(args: Array<String>) {
     if (args.isEmpty()) {
@@ -36,53 +43,84 @@ fun main(args: Array<String>) {
         )
 
         println()
-        println("Enter words to look up (Ctrl-D to quit):")
+        println("Enter a query as '<pattern> [rack]' (Ctrl-D to quit):")
+        println("  pattern: literal letters, '_' = exactly one wildcard letter, '*' = one or more")
+        println("  rack:    extra letters available to fill wildcards (optional)")
         generateSequence(::readLine).forEach { line ->
-            val word = line.trim()
-            if (word.isEmpty()) return@forEach
+            val trimmed = line.trim()
+            if (trimmed.isEmpty()) return@forEach
 
-            var kotlinFound = false
-            val kotlinNanos = measureNanoTime { kotlinFound = kotlinTrie.contains(word) }
-
-            // Outer: wall-clock around the whole FFM call, measured from the JVM side --
-            // includes downcall/marshalling overhead. Inner: Swift's own measurement of
-            // just its lookup walk, returned as part of LookupResult (see AVLTrie.swift).
-            // The gap between them is the FFM crossing's cost.
-            lateinit var swiftResult: LookupResult
-            val swiftOuterNanos = measureNanoTime { swiftResult = swiftTrie.contains(word, arena) }
-            val kotlinUs = kotlinNanos / 1000.0
-            val swiftInnerUs = swiftResult.lookupTimeMillis * 1000.0
-            val swiftOuterUs = swiftOuterNanos / 1000.0
-            val ffmOverheadUs = swiftOuterUs - swiftInnerUs
-
-            // Kotlin vs Swift's inner time is the apples-to-apples comparison (both are
-            // pure trie-walk time, with no FFM crossing in either figure).
-            val speedDiffUs = kotlin.math.abs(kotlinUs - swiftInnerUs)
-            val slowerUs = maxOf(kotlinUs, swiftInnerUs)
-            val speedDiffPercent = if (slowerUs > 0) speedDiffUs / slowerUs * 100.0 else 0.0
-            val speedComparison = when {
-                kotlinUs < swiftInnerUs ->
-                    "Kotlin is faster than Swift by ${"%.3f".format(speedDiffUs)} us (${"%.1f".format(speedDiffPercent)}%)"
-                swiftInnerUs < kotlinUs ->
-                    "Swift is faster than Kotlin by ${"%.3f".format(speedDiffUs)} us (${"%.1f".format(speedDiffPercent)}%)"
-                else -> "Kotlin and Swift took the same time"
+            val parts = trimmed.split(Regex("\\s+"), limit = 2)
+            val pattern = parts[0]
+            val rack = parts.getOrElse(1) { "" }
+            if (pattern.isEmpty()) {
+                println("  usage: <pattern> [rack] -- pattern can't be empty")
+                return@forEach
             }
 
-            val overheadPercent = if (swiftOuterUs > 0) ffmOverheadUs / swiftOuterUs * 100.0 else 0.0
-
-            println("  \"$word\":")
-            println("    Kotlin: ${found(kotlinFound)} (${"%.3f".format(kotlinUs)} us)")
-            println(
-                "    Swift:  ${found(swiftResult.isFound)} (outer ${"%.3f".format(swiftOuterUs)} us, " +
-                    "inner ${"%.3f".format(swiftInnerUs)} us)"
-            )
-            println("    $speedComparison")
-            println(
-                "    FFM overhead: ${"%.3f".format(ffmOverheadUs)} us " +
-                    "(${"%.1f".format(overheadPercent)}% of the Swift call)"
+            println("\"$trimmed\":")
+            runSearch(
+                kotlinSearch = { kotlinTrie.findExactMatches(pattern, rack) },
+                swiftSearch = { swiftTrie.findExactMatches(pattern, rack, arena) },
             )
         }
     }
 }
 
-private fun found(value: Boolean) = if (value) "found    " else "not found"
+/**
+ * Runs the exact-match search against both backends and prints a 4-line
+ * timing breakdown: Kotlin's result+time, Swift's result+outer/inner time,
+ * a speed comparison (Kotlin vs Swift's *inner* time -- the apples-to-apples
+ * figure, since neither includes the FFM crossing), and the FFM overhead
+ * itself (outer - inner).
+ */
+private fun runSearch(
+    kotlinSearch: () -> List<String>,
+    swiftSearch: () -> WordSearchResult,
+) {
+    var kotlinWords: List<String> = emptyList()
+    val kotlinNanos = measureNanoTime { kotlinWords = kotlinSearch() }
+    val kotlinUs = kotlinNanos / 1000.0
+
+    // Outer: wall-clock around the whole FFM call, measured from the JVM side --
+    // includes downcall/marshalling overhead. Inner: Swift's own measurement of
+    // just its search, returned as part of WordSearchResult (see AVLTrie.swift).
+    // The gap between them is the FFM crossing's cost.
+    lateinit var swiftResult: WordSearchResult
+    val swiftOuterNanos = measureNanoTime { swiftResult = swiftSearch() }
+    val swiftWords = (0 until swiftResult.wordCount()).map { swiftResult.word(it) }
+    val swiftInnerUs = swiftResult.searchTimeMillis() * 1000.0
+    val swiftOuterUs = swiftOuterNanos / 1000.0
+    val ffmOverheadUs = swiftOuterUs - swiftInnerUs
+
+    val speedDiffUs = kotlin.math.abs(kotlinUs - swiftInnerUs)
+    val slowerUs = maxOf(kotlinUs, swiftInnerUs)
+    val speedDiffPercent = if (slowerUs > 0) speedDiffUs / slowerUs * 100.0 else 0.0
+    val speedComparison = when {
+        kotlinUs < swiftInnerUs ->
+            "Kotlin is faster than Swift by ${"%.3f".format(speedDiffUs)} us (${"%.1f".format(speedDiffPercent)}%)"
+        swiftInnerUs < kotlinUs ->
+            "Swift is faster than Kotlin by ${"%.3f".format(speedDiffUs)} us (${"%.1f".format(speedDiffPercent)}%)"
+        else -> "Kotlin and Swift took the same time"
+    }
+
+    val overheadPercent = if (swiftOuterUs > 0) ffmOverheadUs / swiftOuterUs * 100.0 else 0.0
+
+    println("  Kotlin: ${kotlinWords.size} word(s) (${"%.3f".format(kotlinUs)} us) -> ${formatWords(kotlinWords)}")
+    println(
+        "  Swift:  ${swiftWords.size} word(s) (outer ${"%.3f".format(swiftOuterUs)} us, " +
+            "inner ${"%.3f".format(swiftInnerUs)} us) -> ${formatWords(swiftWords)}"
+    )
+    println("  $speedComparison")
+    println(
+        "  FFM overhead: ${"%.3f".format(ffmOverheadUs)} us " +
+            "(${"%.1f".format(overheadPercent)}% of the Swift call)"
+    )
+}
+
+private fun formatWords(words: List<String>): String {
+    if (words.isEmpty()) return "(none)"
+    val shown = words.take(MAX_DISPLAY_RESULTS).joinToString(", ")
+    val remaining = words.size - MAX_DISPLAY_RESULTS
+    return if (remaining > 0) "$shown, ...and $remaining more" else shown
+}

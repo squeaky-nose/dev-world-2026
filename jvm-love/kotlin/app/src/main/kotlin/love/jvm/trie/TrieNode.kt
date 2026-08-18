@@ -15,3 +15,16 @@ internal class TrieNode(val char: Char) {
     var right: TrieNode? = null
     var height: Int = 1
 }
+
+/** In-order walk of this node's children-AVL-tree, yielding every child actually present. */
+internal fun TrieNode.children(): List<TrieNode> {
+    val result = mutableListOf<TrieNode>()
+    fun visit(node: TrieNode?) {
+        if (node == null) return
+        visit(node.left)
+        result.add(node)
+        visit(node.right)
+    }
+    visit(childrenRoot)
+    return result
+}

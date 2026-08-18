@@ -1,47 +1,81 @@
 # jvm-love
 
-A command-line app that builds the same word list into two independent,
-from-scratch **self-balancing trie** implementations — one native Kotlin, one
-native Swift — inside a *single JVM process*, then lets you look up words and
-compares both backends side by side.
+A command-line Scrabble word finder that builds the same word list into two
+independent, from-scratch **self-balancing trie** implementations — one
+native Kotlin, one native Swift — inside a *single JVM process*, then answers
+wildcard + rack queries against both backends side by side.
 
 ```
 $ make run
-Kotlin trie:  235976 words in 60.47 ms
-Swift trie:   235976 words in 571.89 ms
+Kotlin trie:  79339 words in 33.07 ms
+Swift trie:   79339 words in 137.08 ms
 
-Enter words to look up (Ctrl-D to quit):
-  "aardvark":
-    Kotlin: found     (3.542 us)
-    Swift:  found     (outer 3924.750 us, inner 4.417 us)
-    Kotlin is faster than Swift by 0.875 us (19.8%)
-    FFM overhead: 3920.333 us (99.9% of the Swift call)
-  "zebra":
-    Kotlin: found     (8.125 us)
-    Swift:  found     (outer 55.750 us, inner 7.750 us)
-    Swift is faster than Kotlin by 0.375 us (4.6%)
-    FFM overhead: 48.000 us (86.1% of the Swift call)
+Enter a query as '<pattern> [rack]' (Ctrl-D to quit):
+  pattern: literal letters, '_' = exactly one wildcard letter, '*' = one or more
+  rack:    extra letters available to fill wildcards (optional)
+"*pp*e al":
+  Kotlin: 1 word(s) (1744.416 us) -> apple
+  Swift:  1 word(s) (outer 3879.416 us, inner 126.375 us) -> apple
+  Swift is faster than Kotlin by 1618.041 us (92.8%)
+  FFM overhead: 3753.041 us (96.7% of the Swift call)
 ```
 
-Each lookup prints four lines:
-1. **Kotlin** — the result, timed with `measureNanoTime` around
-   `AvlTrie.contains`.
-2. **Swift** — the result, timed two ways: **outer** is `measureNanoTime`
-   around the whole call from Kotlin (includes FFM downcall/marshalling
-   cost); **inner** is `LookupResult.lookupTimeMillis`, timed *inside* Swift
-   with `ContinuousClock`, covering only the trie walk itself.
-   `SwiftAVLTrie.contains` returns this alongside the boolean result (a
-   `LookupResult` struct) rather than exposing it through a separate
-   stateful accessor call.
+Every query runs one search — dictionary words that fully match `pattern`
+end to end, with wildcards filled from `rack` (see "Query grammar" below) —
+against **both** backends, printing a 4-line breakdown:
+1. **Kotlin** — the result count + word list, timed with `measureNanoTime`
+   around `AvlTrie.findExactMatches`.
+2. **Swift** — the result count + word list, timed two ways: **outer** is
+   `measureNanoTime` around the whole call from Kotlin (includes FFM
+   downcall/marshalling cost); **inner** is `WordSearchResult.searchTimeMillis`,
+   timed *inside* Swift with `ContinuousClock`, covering only the search
+   itself. Results are exposed as indexed getters (`wordCount()`/`word(at:)`)
+   on `WordSearchResult` rather than returning a Swift `Array` directly —
+   jextract's FFM mode doesn't support extracting collection-typed return
+   values, only scalars, strings, and nominal types built from those.
 3. **Speed comparison** — Kotlin's time vs. Swift's *inner* time (the
-   apples-to-apples comparison: both are pure trie-walk time, with no FFM
+   apples-to-apples comparison: both are pure search time, with no FFM
    crossing in either figure), reporting which was faster and by how much,
    in both µs and relative %.
 4. **FFM overhead** — `outer - inner`: what crossing the JVM/native boundary
-   actually costs, as µs and as a percentage of the whole Swift call. Note
-   the first lookup above (~3.9 ms overhead, 99.9% of the call) versus a
-   later one (tens of µs, ~86%) — the FFM downcall stub pays a one-time
-   warmup cost on its first invocation.
+   actually costs, as µs and as a percentage of the whole Swift call. The
+   FFM downcall stub pays a one-time warmup cost on its first invocation of
+   a given generated method — expect a large overhead on the very first
+   query, then tens-to-hundreds of µs afterward.
+
+Both backends' word lists are printed side by side (capped at 20 words, then
+`...and N more`) so any divergence between the two independent
+implementations is visible at a glance, not just their counts.
+
+## Query grammar
+
+Each line of input is `<pattern> [rack]` (whitespace-separated; `rack`
+defaults to empty). `pattern` is a sequence of per-character tokens:
+
+- a **literal letter** — matches exactly that letter (a tile already on the
+  board)
+- **`_`** — matches exactly **one** wildcard letter
+- **`*`** — matches **one or more** consecutive wildcard letters
+
+Every wildcard letter (`_` or `*`) must be drawn from `rack` — not any letter
+of the alphabet — mirroring real Scrabble: fixed pattern letters are tiles
+already placed on the board, wildcard positions are empty squares you can
+only fill with tiles from your own hand. Each rack letter is usable at most
+once per candidate word. A plain word with no wildcards (`test`) is valid
+input with an empty rack — it degenerates to a plain dictionary membership
+check.
+
+The search is always anchored at both ends — `pattern` must match the whole
+word, not a prefix or substring — and letter *positions* matter: unlike an
+anagram search, a pattern's literal letters must appear exactly where they're
+written. `*` only means the *span it covers* is variable-length, not that its
+contents can land anywhere else in the word.
+
+Worked examples: `test` (all-literal, a plain membership check) ·
+`_pp_e al` (two single-letter wildcards) · `*pp*e al` (two variable-length
+wildcards; matches `apple` — the first `*` consumes `a`, the second consumes
+`l`) · `po* tato` (matches `pot`, `potato`, `potto`, etc. — but *not* `otto`,
+since the pattern's leading `po` must appear at the start of the word).
 
 ## Architecture
 
@@ -58,7 +92,7 @@ you write by hand.
 ```
 kotlin/app/  (Gradle "app" project — the thing you run)
 ├── src/main/kotlin/love/jvm/
-│   ├── Main.kt                 builds both tries, runs the stdin lookup loop
+│   ├── Main.kt                 builds both tries, runs the stdin wildcard-search loop
 │   └── trie/AvlTrie.kt          Kotlin trie — pure JVM code
 └── build.gradle.kts             also drives the Swift build (see below)
 
@@ -101,15 +135,29 @@ BST's worst case of O(k) — self-balancing applied to the trie's branching
 structure, not its depth. Both `AvlTrie.kt` and `AVLTrie.swift` implement the
 same rotation logic (`rotateLeft`/`rotateRight`/`rebalance`) independently.
 
+This is also why a trie suits wildcard/rack search better than a B-tree or a
+hash set: `findExactMatches` is a backtracking search that only ever branches
+into a node's **actual, already-inserted** children (`TrieNode.children()`/
+`Node.children()`) — a wildcard or rack letter that isn't a real
+next-character anywhere in the dictionary prunes that branch immediately,
+for free. A hash set would need to generate and individually probe every
+combinatorially-possible candidate string first; a B-tree gives ordered
+whole-key comparisons, not per-character branching, so it has no equivalent
+way to prune mid-word.
+
 ### Case sensitivity
 
 Both tries lowercase every word — on insertion (`AvlTrie.insert` /
-`SwiftAVLTrie.insert`) and on lookup (`AvlTrie.contains` /
-`SwiftAVLTrie.lookup`) — so `"Zebra"`, `"ZEBRA"`, and `"zebra"` all hit the
-same node. One visible effect: building from `/usr/share/dict/words` (which
-contains both `"Aardvark"` and `"aardvark"` as separate lines for some
-words) now reports a slightly *lower* word count than the raw line count,
-since case-variant duplicates collapse into one trie entry.
+`SwiftAVLTrie.insert`) and on search (`AvlTrie.findExactMatches`, mirrored by
+`SwiftAVLTrie.findExactMatches`) — so `"Zebra"`, `"ZEBRA"`, and `"zebra"` all
+hit the same node, regardless of how you type a query. `ospd.txt` (the
+default word list) is already all-lowercase with no case-variant duplicates,
+so this doesn't visibly change its reported word count; it would if you
+pointed `WORDS` at a list with mixed-case entries (e.g. macOS's
+`/usr/share/dict/words`, which has both `"Aardvark"` and `"aardvark"` as
+separate lines for some words) — case-variant duplicates collapse into one
+trie entry, so the reported count would come in slightly *lower* than the
+raw line count.
 
 ## Prerequisites
 
@@ -133,8 +181,9 @@ since case-variant duplicates collapse into one trie entry.
   ```
 - **git** (to clone the pinned swift-java checkout in `make setup`).
 
-`/usr/share/dict/words` (present by default on macOS) is used as the
-default word list — no separate download needed.
+[`ospd.txt`](ospd.txt) (the Official Scrabble Players Dictionary, one word
+per line) at the project root is used as the default word list — fitting,
+given the whole point of this app.
 
 ## Versions
 
@@ -160,7 +209,7 @@ silently changing shape underneath it.
 
 ```
 make setup    # one-time: clone+pin vendor/swift-java, publish its libs to ~/.m2
-make run      # build (if needed) and run interactively against /usr/share/dict/words
+make run      # build (if needed) and run interactively against ospd.txt
 ```
 
 Run `make` (or `make help`) to list all available targets. Use a different
@@ -171,7 +220,7 @@ make run WORDS=/path/to/your/wordlist.txt
 ```
 
 The word list format is one word per line (blank lines are skipped); this is
-exactly the format `/usr/share/dict/words` is already in.
+exactly the format `ospd.txt` is already in.
 
 ## How the Makefile works
 
@@ -187,7 +236,7 @@ exactly the format `/usr/share/dict/words` is already in.
   (`kotlin/app/build/install/app/bin/app`) directly instead of going through
   `gradle run` — **Gradle's `run` task doesn't forward the calling shell's
   stdin to the forked JVM by default**, which silently breaks the
-  interactive word-lookup loop when input is piped in (`make run` needs this
+  interactive query loop when input is piped in (`make run` needs this
   to work for both an interactive terminal session and piped/scripted input).
   This target fails fast with a clear error if `make setup` hasn't been run
   yet, since `:app:compileKotlin`'s dependency on the Maven-local swift-java
