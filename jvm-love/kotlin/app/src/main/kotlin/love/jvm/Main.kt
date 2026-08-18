@@ -1,8 +1,8 @@
 package love.jvm
 
-import love.jvm.swifttrie.SwiftAVLTrie
+import love.jvm.swifttrie.SwiftAVLScrabbleTrie
 import love.jvm.swifttrie.WordSearchResult
-import love.jvm.trie.AvlTrie
+import love.jvm.trie.AvlScrabbleTrie
 import love.jvm.trie.scrabbleScore
 import org.swift.swiftkit.ffm.AllocatingSwiftArena
 import kotlin.system.exitProcess
@@ -12,7 +12,7 @@ private const val MAX_DISPLAY_RESULTS = 20
 
 /**
  * One JVM process hosting two independent, from-scratch "self-balancing
- * trie" implementations: `AvlTrie` runs natively in Kotlin, `SwiftAVLTrie`
+ * trie" implementations: `AvlScrabbleTrie` runs natively in Kotlin, `SwiftAVLScrabbleTrie`
  * runs in-process in Swift, invoked here over swift-java's jextract FFM
  * bindings (see the README's Architecture section). Neither backend ever
  * runs as a separate OS process -- the Swift code is a dynamic library
@@ -30,14 +30,14 @@ fun main(args: Array<String>) {
     }
     val path = args[0]
 
-    val kotlinTrie = AvlTrie()
+    val kotlinTrie = AvlScrabbleTrie()
     kotlinTrie.buildFromFile(path)
     println(
         "Kotlin trie:  ${kotlinTrie.wordCount} words in ${"%.2f".format(kotlinTrie.buildTimeMillis)} ms"
     )
 
     AllocatingSwiftArena.ofConfined().use { arena ->
-        val swiftTrie = SwiftAVLTrie.init(arena)
+        val swiftTrie = SwiftAVLScrabbleTrie.init(arena)
         swiftTrie.buildFromFile(path)
         println(
             "Swift trie:   ${swiftTrie.wordCount()} words in ${"%.2f".format(swiftTrie.buildTimeMillis())} ms"
@@ -85,7 +85,7 @@ private fun runSearch(
 
     // Outer: wall-clock around the whole FFM call, measured from the JVM side --
     // includes downcall/marshalling overhead. Inner: Swift's own measurement of
-    // just its search, returned as part of WordSearchResult (see AVLTrie.swift).
+    // just its search, returned as part of WordSearchResult (see AVLScrabbleTrie.swift).
     // The gap between them is the FFM crossing's cost.
     lateinit var swiftResult: WordSearchResult
     val swiftOuterNanos = measureNanoTime { swiftResult = swiftSearch() }

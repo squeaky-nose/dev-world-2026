@@ -225,7 +225,7 @@ private func matchMulti(
     }
 }
 
-/// Result of a `SwiftAVLTrie.findExactMatches` search: the matched words
+/// Result of a `SwiftAVLScrabbleTrie.findExactMatches` search: the matched words
 /// plus how long the search itself took, measured inside Swift with
 /// `ContinuousClock` -- i.e. excluding the FFM downcall/marshalling overhead
 /// a caller's own timer around the whole call would include. Models the
@@ -256,10 +256,10 @@ public final class WordSearchResult {
 }
 
 /// The Swift half of the two independent "self-balancing trie" demos in this
-/// project (see the Kotlin `AvlTrie` for the JVM-native counterpart). Invoked
+/// project (see the Kotlin `AvlScrabbleTrie` for the JVM-native counterpart). Invoked
 /// from the Kotlin app in-process via swift-java's jextract FFM bindings --
 /// this class never runs as a separate OS process.
-public final class SwiftAVLTrie {
+public final class SwiftAVLScrabbleTrie {
     private let root = Node(character: "\0")
     private let clock = ContinuousClock()
     private var insertedCount = 0
@@ -289,7 +289,7 @@ public final class SwiftAVLTrie {
         guard let data = FileManager.default.contents(atPath: path),
             let contents = String(data: data, encoding: .utf8)
         else {
-            fatalError("SwiftAVLTrie.buildFromFile: could not read \(path)")
+            fatalError("SwiftAVLScrabbleTrie.buildFromFile: could not read \(path)")
         }
 
         for line in contents.split(separator: "\n", omittingEmptySubsequences: true) {

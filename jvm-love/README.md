@@ -26,7 +26,7 @@ against **both** backends, printing a 4-line breakdown:
 1. **Kotlin** — the result count + word list (sorted highest-scoring first,
    each word annotated `[score]` under standard English Scrabble letter
    values — see "Scoring" below), timed with `measureNanoTime` around
-   `AvlTrie.findExactMatches`.
+   `AvlScrabbleTrie.findExactMatches`.
 2. **Swift** — the result count + word list, timed two ways: **outer** is
    `measureNanoTime` around the whole call from Kotlin (includes FFM
    downcall/marshalling cost); **inner** is `WordSearchResult.searchTimeMillis`,
@@ -87,7 +87,7 @@ V, W, Y · 5: K · 8: J, X · 10: Q, Z) and results come back **sorted
 highest-scoring first**.
 
 The point table and `scrabbleScore` function are implemented independently
-in both `AvlTrie.kt` and `AVLTrie.swift` — each backend scores and sorts its
+in both `AvlScrabbleTrie.kt` and `AVLScrabbleTrie.swift` — each backend scores and sorts its
 *own* results before returning them from `findExactMatches`, so the sort is
 part of what's being timed, not a step Kotlin adds afterward. `Main.kt`
 reuses Kotlin's own `scrabbleScore` purely to render the `[score]`
@@ -111,12 +111,12 @@ you write by hand.
 kotlin/app/  (Gradle "app" project — the thing you run)
 ├── src/main/kotlin/love/jvm/
 │   ├── Main.kt                 builds both tries, runs the stdin wildcard-search loop
-│   └── trie/AvlTrie.kt          Kotlin trie — pure JVM code
+│   └── trie/AvlScrabbleTrie.kt   Kotlin trie — pure JVM code
 └── build.gradle.kts             also drives the Swift build (see below)
 
 swift/JvmLoveTrie/  (SwiftPM package — the Swift half)
 └── Sources/JvmLoveTrie/
-    ├── AVLTrie.swift             Swift trie — independent implementation, same algorithm
+    ├── AVLScrabbleTrie.swift     Swift trie — independent implementation, same algorithm
     └── swift-java.config         tells jextract what Java package to generate into
 
 vendor/swift-java/   pinned checkout of swift-java itself (see Versions below;
@@ -128,7 +128,7 @@ task depends on a `swiftBuild` task that runs `swift build` in
 `swift/JvmLoveTrie`. That one SwiftPM build both compiles the trie into a
 dylib *and* (via the `JExtractSwiftPlugin` build plugin declared in
 `swift/JvmLoveTrie/Package.swift`) generates the Java source files that let
-Kotlin call it — so `love.jvm.swifttrie.SwiftAVLTrie` (the Kotlin-visible
+Kotlin call it — so `love.jvm.swifttrie.SwiftAVLScrabbleTrie` (the Kotlin-visible
 handle onto the Swift class) doesn't exist in this repo; it's generated fresh
 into `swift/JvmLoveTrie/.build/plugins/outputs/.../src/generated/java` on
 every build. `Main.kt` allocates a confined `AllocatingSwiftArena` for the
@@ -150,8 +150,9 @@ stores each node's children in their own small **AVL-balanced binary search
 tree**, keyed by character. That bounds child lookup at any single node to
 O(log k) (k = that node's distinct child count) instead of an unbalanced
 BST's worst case of O(k) — self-balancing applied to the trie's branching
-structure, not its depth. Both `AvlTrie.kt` and `AVLTrie.swift` implement the
-same rotation logic (`rotateLeft`/`rotateRight`/`rebalance`) independently.
+structure, not its depth. Both `AvlScrabbleTrie.kt` and `AVLScrabbleTrie.swift`
+implement the same rotation logic (`rotateLeft`/`rotateRight`/`rebalance`)
+independently.
 
 This is also why a trie suits wildcard/rack search better than a B-tree or a
 hash set: `findExactMatches` is a backtracking search that only ever branches
@@ -165,9 +166,9 @@ way to prune mid-word.
 
 ### Case sensitivity
 
-Both tries lowercase every word — on insertion (`AvlTrie.insert` /
-`SwiftAVLTrie.insert`) and on search (`AvlTrie.findExactMatches`, mirrored by
-`SwiftAVLTrie.findExactMatches`) — so `"Zebra"`, `"ZEBRA"`, and `"zebra"` all
+Both tries lowercase every word — on insertion (`AvlScrabbleTrie.insert` /
+`SwiftAVLScrabbleTrie.insert`) and on search (`AvlScrabbleTrie.findExactMatches`,
+mirrored by `SwiftAVLScrabbleTrie.findExactMatches`) — so `"Zebra"`, `"ZEBRA"`, and `"zebra"` all
 hit the same node, regardless of how you type a query. `ospd.txt` (the
 default word list) is already all-lowercase with no case-variant duplicates,
 so this doesn't visibly change its reported word count; it would if you
