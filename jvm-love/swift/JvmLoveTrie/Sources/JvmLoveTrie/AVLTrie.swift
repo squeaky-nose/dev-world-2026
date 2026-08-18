@@ -125,6 +125,22 @@ extension Node {
     }
 }
 
+/// Standard English Scrabble letter point values.
+private let letterValues: [Character: Int] = [
+    "a": 1, "e": 1, "i": 1, "o": 1, "u": 1, "l": 1, "n": 1, "s": 1, "t": 1, "r": 1,
+    "d": 2, "g": 2,
+    "b": 3, "c": 3, "m": 3, "p": 3,
+    "f": 4, "h": 4, "v": 4, "w": 4, "y": 4,
+    "k": 5,
+    "j": 8, "x": 8,
+    "q": 10, "z": 10,
+]
+
+/// Sum of `word`'s letter values under standard English Scrabble scoring.
+func scrabbleScore(_ word: String) -> Int {
+    word.reduce(0) { $0 + (letterValues[$1] ?? 0) }
+}
+
 /// One character position in a wildcard pattern.
 enum Token {
     case literal(Character)
@@ -291,8 +307,9 @@ public final class SwiftAVLTrie {
     /// `*` matches one or more, every wildcard letter drawn from `rack`
     /// (each rack letter usable at most once per candidate word). An
     /// all-literal pattern with an empty rack degenerates to a plain
-    /// membership check. Times only the search itself, natively, using
-    /// `ContinuousClock` -- see `WordSearchResult`.
+    /// membership check. Sorted by `scrabbleScore`, highest first. Times
+    /// only the search itself, natively, using `ContinuousClock` -- see
+    /// `WordSearchResult`.
     public func findExactMatches(_ pattern: String, _ rack: String) -> WordSearchResult {
         let start = clock.now
         let tokens = tokenize(pattern)
@@ -303,6 +320,7 @@ public final class SwiftAVLTrie {
         if !tokens.isEmpty {
             matchExact(root, tokens, 0, &rackCounts, "", &seen, &results)
         }
+        results.sort { scrabbleScore($0) > scrabbleScore($1) }
         return WordSearchResult(words: results, searchTimeMillis: millis(since: start))
     }
 

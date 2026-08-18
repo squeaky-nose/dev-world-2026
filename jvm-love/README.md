@@ -13,18 +13,20 @@ Swift trie:   79339 words in 137.08 ms
 Enter a query as '<pattern> [rack]' (Ctrl-D to quit):
   pattern: literal letters, '_' = exactly one wildcard letter, '*' = one or more
   rack:    extra letters available to fill wildcards (optional)
-"*pp*e al":
-  Kotlin: 1 word(s) (1744.416 us) -> apple
-  Swift:  1 word(s) (outer 3879.416 us, inner 126.375 us) -> apple
-  Swift is faster than Kotlin by 1618.041 us (92.8%)
-  FFM overhead: 3753.041 us (96.7% of the Swift call)
+"po* tato":
+  Kotlin: 3 word(s) (5601.375 us) -> potato [8], potto [7], pot [5]
+  Swift:  3 word(s) (outer 5295.000 us, inner 1413.000 us) -> potato [8], potto [7], pot [5]
+  Swift is faster than Kotlin by 4188.375 us (74.8%)
+  FFM overhead: 3882.000 us (73.3% of the Swift call)
 ```
 
 Every query runs one search — dictionary words that fully match `pattern`
 end to end, with wildcards filled from `rack` (see "Query grammar" below) —
 against **both** backends, printing a 4-line breakdown:
-1. **Kotlin** — the result count + word list, timed with `measureNanoTime`
-   around `AvlTrie.findExactMatches`.
+1. **Kotlin** — the result count + word list (sorted highest-scoring first,
+   each word annotated `[score]` under standard English Scrabble letter
+   values — see "Scoring" below), timed with `measureNanoTime` around
+   `AvlTrie.findExactMatches`.
 2. **Swift** — the result count + word list, timed two ways: **outer** is
    `measureNanoTime` around the whole call from Kotlin (includes FFM
    downcall/marshalling cost); **inner** is `WordSearchResult.searchTimeMillis`,
@@ -76,6 +78,22 @@ Worked examples: `test` (all-literal, a plain membership check) ·
 wildcards; matches `apple` — the first `*` consumes `a`, the second consumes
 `l`) · `po* tato` (matches `pot`, `potato`, `potto`, etc. — but *not* `otto`,
 since the pattern's leading `po` must appear at the start of the word).
+
+## Scoring
+
+Each matched word is scored under standard English Scrabble letter values
+(1 point: A, E, I, O, U, L, N, S, T, R · 2: D, G · 3: B, C, M, P · 4: F, H,
+V, W, Y · 5: K · 8: J, X · 10: Q, Z) and results come back **sorted
+highest-scoring first**.
+
+The point table and `scrabbleScore` function are implemented independently
+in both `AvlTrie.kt` and `AVLTrie.swift` — each backend scores and sorts its
+*own* results before returning them from `findExactMatches`, so the sort is
+part of what's being timed, not a step Kotlin adds afterward. `Main.kt`
+reuses Kotlin's own `scrabbleScore` purely to render the `[score]`
+annotation next to each word it prints (including Swift's already-sorted
+results) — it never uses that call to *decide* order, since each backend
+already returned its list correctly sorted.
 
 ## Architecture
 

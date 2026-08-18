@@ -3,6 +3,7 @@ package love.jvm
 import love.jvm.swifttrie.SwiftAVLTrie
 import love.jvm.swifttrie.WordSearchResult
 import love.jvm.trie.AvlTrie
+import love.jvm.trie.scrabbleScore
 import org.swift.swiftkit.ffm.AllocatingSwiftArena
 import kotlin.system.exitProcess
 import kotlin.system.measureNanoTime
@@ -118,9 +119,14 @@ private fun runSearch(
     )
 }
 
+/**
+ * Both backends already return their word lists sorted by [scrabbleScore]
+ * (highest first) -- this only adds the `[score]` annotation for display, so
+ * it reuses Kotlin's own scoring function rather than re-deriving order.
+ */
 private fun formatWords(words: List<String>): String {
     if (words.isEmpty()) return "(none)"
-    val shown = words.take(MAX_DISPLAY_RESULTS).joinToString(", ")
+    val shown = words.take(MAX_DISPLAY_RESULTS).joinToString(", ") { "$it [${scrabbleScore(it)}]" }
     val remaining = words.size - MAX_DISPLAY_RESULTS
     return if (remaining > 0) "$shown, ...and $remaining more" else shown
 }
