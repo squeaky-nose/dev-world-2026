@@ -7,6 +7,7 @@
 // The code will spell out a message in Morse code on the onboard LED
 // of the XIAO ESP32C6 (GPIO15).
 
+/// The message that gets spelled out in Morse code on the LED, forever.
 let message = "Hello DevWorld 2026!"
 
 // Duration of one Morse "dot", in milliseconds. A dash is 3 units, the gap
@@ -14,6 +15,10 @@ let message = "Hello DevWorld 2026!"
 // between words is 7 units.
 let unitMs: UInt32 = 200
 
+/// Returns the Morse code (dots and dashes) for a single ASCII byte, or
+/// `nil` if the byte has no Morse representation (treated by callers as a
+/// word gap).
+//
 // Operates on raw UTF-8 bytes rather than `Character`: comparing `Character`
 // values pulls in the stdlib's Unicode grapheme-breaking/normalization
 // tables, which aren't linked into this freestanding embedded build. The
@@ -62,19 +67,25 @@ func morse(for byte: UInt8) -> String? {
   }
 }
 
+/// Blocks the current FreeRTOS task for approximately `ms` milliseconds,
+/// converting from milliseconds to ticks using the configured tick rate.
 func delay(ms: UInt32) {
   vTaskDelay(ms / (1000 / UInt32(configTICK_RATE_HZ)))
 }
 
+/// Blinks the LED once for a single Morse symbol: a dash (`-`) is held 3
+/// units, anything else (a dot) is held 1 unit.
 func blinkSymbol(_ symbolByte: UInt8, led: Led) {
-  let durationUnits: UInt32 = symbolByte == UInt8(ascii: "-") ? 3 : 1
+  let durationUnits: UInt32 = symbolByte == UInt8(ascii: "-") ? 3 : 1  // dash = 3 units, dot = 1 unit
   led.setLed(value: true)
   delay(ms: unitMs * durationUnits)
   led.setLed(value: false)
 }
 
+/// Blinks out a full Morse `code` string (e.g. `".-"` for "A") on `led`,
+/// inserting the inter-symbol gap between symbols but not before the first.
 func blinkMorse(_ code: String, led: Led) {
-  var isFirstSymbol = true
+  var isFirstSymbol = true  // suppresses the leading inter-symbol gap
   for symbolByte in code.utf8 {
     if !isFirstSymbol {
       delay(ms: unitMs)  // Gap between symbols within a letter.
@@ -84,8 +95,12 @@ func blinkMorse(_ code: String, led: Led) {
   }
 }
 
+/// Logger used for the blink loop's status/progress messages.
 let logger = Logger(subsystem: "com.example.hello-world", category: "morse")
 
+/// Firmware entry point, exported under the C symbol ESP-IDF calls to start
+/// the app. Never returns: after logging startup, it blinks `message` in
+/// Morse code on the onboard LED in an infinite loop.
 @_cdecl("app_main")
 func main() {
   delay(ms: unitMs * 10)  // Wait for debugger to attach.
@@ -97,7 +112,7 @@ func main() {
     logger.notice("--- start: \(message) ---")
     for byte in message.utf8 {
       if let code = morse(for: byte) {
-        let charString = String(decoding: [byte], as: UTF8.self)
+        let charString = String(decoding: [byte], as: UTF8.self)  // byte, as text, for the log line
         logger.debug("\(charString): \(code)")
         blinkMorse(code, led: led)
         delay(ms: unitMs * 3)  // Gap between letters.

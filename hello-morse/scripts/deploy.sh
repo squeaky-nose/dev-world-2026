@@ -26,6 +26,8 @@ fi
 # shellcheck source=/dev/null
 source "$ESP_IDF_DIR/export.sh" > /dev/null
 
+# macOS device paths for the common USB-serial chips found on ESP32 boards
+# (native USB CDC, WCH CH34x, Silicon Labs CP210x, and FTDI/generic UART bridges).
 candidates=(/dev/cu.usbmodem* /dev/cu.wchusbserial* /dev/cu.SLAB* /dev/cu.usbserial*)
 ports=()
 for p in "${candidates[@]}"; do

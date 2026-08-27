@@ -17,6 +17,8 @@ IDF_ENV := if [ -z "$$IDF_PATH" ]; then . "$(ESP_IDF_DIR)/export.sh" > /dev/null
 
 .DEFAULT_GOAL := help
 
+# Self-documenting targets: scans this Makefile for "target: ## description"
+# lines and prints them, rather than maintaining a separate help text.
 help: ## show this help
 	@echo "Usage: make <target>"
 	@echo ""

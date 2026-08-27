@@ -8,5 +8,6 @@
 cmake_minimum_required(VERSION 3.29)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+# Skip configuring components this project doesn't use, to keep the build fast.
 idf_build_set_property(MINIMAL_BUILD ON)
 project(main)

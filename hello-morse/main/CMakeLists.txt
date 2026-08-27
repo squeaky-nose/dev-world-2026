@@ -27,6 +27,11 @@
 #     - esp_driver_gpio: ESP-IDF GPIO driver for controlling hardware pins
 #
 # IMPORTANT: All dependencies must be explicitly listed.
+#
+# idf_component_register() requires at least one entry in SRCS, but this
+# component has no C/C++ sources of its own (they're registered separately
+# below via idf_component_register_swift()), so we pass the platform's null
+# device as a harmless placeholder.
 if(WIN32)
   set(devnull NUL)
 else()
