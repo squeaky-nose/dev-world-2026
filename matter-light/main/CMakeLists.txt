@@ -1,3 +1,10 @@
+#
+#  CMakeLists.txt
+#  matter-light
+#
+#  Created by Sushant Verma on 27/8/2026 for [/dev/world 2026](https://devworld.au/)
+#
+
 # Register the app as an IDF component
 # No PRIV_REQUIRES: ESP-IDF auto-detects component requirements by scanning
 # MatterInterface.cpp's transitive #includes (via BridgingHeader.h), and

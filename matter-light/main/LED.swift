@@ -9,6 +9,8 @@
 struct LED {
   var ledPin: gpio_num_t
 
+  /// Resets `gpioPin` and configures it as a digital output for the LED.
+  /// Fatal errors if the pin can't be reset or configured.
   init(gpioPin: Int) {
     ledPin = gpio_num_t(Int32(gpioPin))
 
@@ -21,6 +23,7 @@ struct LED {
     }
   }
 
+  /// Turns the LED on or off.
   func setLed(value: Bool) {
     // Active-low: this LED is wired so GPIO LOW turns it on.
     let level: UInt32 = value ? 0 : 1

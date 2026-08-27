@@ -5,22 +5,34 @@
 //  Created by Sushant Verma on 18/8/2026 for [/dev/world 2026](https://devworld.au/)
 //
 
+/// Namespace for this project's higher-level, app-facing Matter wrapper types
+/// (as opposed to the lower-level `MatterNode`/`MatterCluster`/`MatterAttribute`
+/// wrappers in Node.swift/Clusters.swift/Attribute.swift).
 enum Matter {}
 
 extension Matter {
+  /// The Matter root node for this device: owns the endpoint list and routes
+  /// attribute-change callbacks from ESP-Matter to the matching `Endpoint`.
   class Node {
+    /// Invoked when a Matter controller sends an Identify command to this node.
     var identifyHandler: (() -> Void)? = nil
 
+    /// All endpoints registered on this node via `addEndpoint(_:)`.
     var endpoints: [Endpoint] = []
 
+    /// Registers `endpoint` so its `eventHandler` can receive attribute
+    /// change callbacks routed by `eventHandler(type:endpoint:cluster:attribute:value:)`.
     func addEndpoint(_ endpoint: Endpoint) {
       endpoints.append(endpoint)
     }
 
     // swift-format-ignore: NeverUseImplicitlyUnwrappedOptionals
     // This is never actually nil after init(), and inside init we want to form a callback closure that references self.
+    /// The underlying ESP-Matter root node, set once during `init()`.
     var innerNode: RootNode!
 
+    /// Initializes NVS storage and creates the underlying ESP-Matter root
+    /// node, wiring its attribute/identify callbacks back to this instance.
     init() {
       // Initialize persistent storage.
       nvs_flash_init()
@@ -38,6 +50,9 @@ extension Matter {
       self.innerNode = root
     }
 
+    /// ESP-Matter's raw attribute callback, translated into a typed
+    /// `Endpoint.Event` and dispatched to the matching endpoint's handler.
+    /// Only reacts to `.didSet`; other event types are ignored.
     func eventHandler(
       type: MatterAttributeEvent, endpoint: __idf_main.Endpoint,
       cluster: Cluster, attribute: UInt32,
@@ -53,6 +68,7 @@ extension Matter {
       // padding, and converting that garbage to Int traps whenever the high
       // bit happens to be set (doesn't fit in signed Int).
       let attrValue = value
+      // Decoded from the C union above, according to its runtime `.type` tag.
       let value: Int
       switch attrValue?.pointee.type {
       case ESP_MATTER_VAL_TYPE_BOOLEAN, ESP_MATTER_VAL_TYPE_NULLABLE_BOOLEAN:
@@ -89,16 +105,24 @@ extension Matter {
 }
 
 extension Matter {
+  /// Base class for a Matter endpoint (e.g. a light) attached to a `Node`.
+  /// Subclasses create the concrete ESP-Matter endpoint in their initializer.
   class Endpoint {
+    /// Registers this endpoint with ESP-Matter's callback context. Subclasses
+    /// must call this via `super.init(node:)` before creating their endpoint.
     init(node: Node) {
       // For now, leak the object, to be able to use local variables to declare it. We don't expect this object to be created and destroyed repeatedly.
       _ = Unmanaged.passRetained(self)
     }
 
+    /// The ESP-Matter endpoint ID, set by the subclass after creating the
+    /// underlying endpoint.
     var id: Int = 0
 
+    /// Invoked whenever an attribute on this endpoint changes.
     var eventHandler: ((Event) -> Void)? = nil
 
+    /// Which ColorControl attribute changed, for `.colorControl` events.
     enum ColorControlAttribute {
       case currentHue
       case currentSaturation
@@ -108,12 +132,19 @@ extension Matter {
       case colorMode
     }
 
+    /// Identifies which cluster/attribute pair a raw ESP-Matter callback
+    /// refers to, resolved by cluster type then attribute ID.
     enum Attribute {
       case onOff
       case levelControl
       case colorControl(ColorControlAttribute)
       case unknown(UInt32)
 
+      /// Resolves a raw ESP-Matter `(cluster, attribute)` pair into a typed
+      /// `Attribute` case by first identifying the cluster type, then
+      /// matching the attribute ID within that cluster. Returns nil if the
+      /// cluster is a known type but the attribute ID isn't one this app
+      /// recognizes.
       init?(cluster: Cluster, attribute: UInt32) {
         if cluster.as(OnOff.self) != nil {
           switch attribute {
@@ -153,6 +184,7 @@ extension Matter {
       }
     }
 
+    /// A decoded attribute-change notification delivered to `eventHandler`.
     struct Event {
       var type: MatterAttributeEvent
       var attribute: Attribute
@@ -162,7 +194,12 @@ extension Matter {
 }
 
 extension Matter {
+  /// An "extended color light" endpoint: on/off, dimmable, and supporting
+  /// both hue/saturation and color-temperature color control.
   class ExtendedColorLight: Endpoint {
+    /// Creates the ESP-Matter extended-color-light endpoint with a default
+    /// on/off state, brightness, and color-temperature color mode, then
+    /// enables the hue/saturation color feature.
     override init(node: Node) {
       super.init(node: node)
 
@@ -188,7 +225,9 @@ extension Matter {
 }
 
 extension Matter {
+  /// A plain on/off light endpoint (no dimming or color control).
   class OnOffLight: Endpoint {
+    /// Creates the ESP-Matter on/off-light endpoint, defaulting it to on.
     override init(node: Node) {
       super.init(node: node)
 
@@ -202,16 +241,24 @@ extension Matter {
 }
 
 extension Matter {
+  /// Owns the root node and drives the ESP-Matter stack's start/lifecycle.
   class Application {
+    /// The root node this application serves; set before calling `start()`.
     var rootNode: Node? = nil
 
+    /// Retains this instance so it survives for the lifetime of the firmware.
     init() {
       // For now, leak the object, to be able to use local variables to declare
       // it. We don't expect this object to be created and destroyed repeatedly.
       _ = Unmanaged.passRetained(self)
     }
 
+    /// Starts the ESP-Matter stack, reopening BLE commissioning if the
+    /// device's fabric was removed, and prints the onboarding QR/manual codes.
     func start() {
+      /// ESP-Matter device-event callback: reopens commissioning when the
+      /// device's Matter fabric is removed (e.g. after a factory reset by a
+      /// controller), so it can be paired again.
       func callback(
         event: UnsafePointer<chip.DeviceLayer.ChipDeviceEvent>?, context: Int
       ) {
@@ -229,6 +276,7 @@ extension Matter {
   }
 }
 
+/// Logs a `Matter.Endpoint.Attribute` in a compact, readable form.
 func print(_ a: Matter.Endpoint.Attribute) {
   switch a {
   case .onOff: print("onOff")

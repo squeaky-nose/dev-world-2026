@@ -1,3 +1,10 @@
+#
+#  Makefile
+#  matter-light
+#
+#  Created by Sushant Verma on 27/8/2026 for [/dev/world 2026](https://devworld.au/)
+#
+
 # Build/flash workflow for the Embedded Swift Matter light firmware.
 
 # NOTE: esp-matter release/v1.2 (matching swift-matter-examples' documented
