@@ -8,6 +8,8 @@
 import SwiftUI
 import ShopSDK
 
+/// Cart tab: line items, promo code entry, order summary, and checkout, or an order
+/// confirmation screen once checkout succeeds.
 struct CartView: View {
     @Bindable var viewModel: CartViewModel
 
@@ -83,6 +85,7 @@ struct CartView: View {
     }
 }
 
+/// Success screen shown after a completed checkout, with a button to reset back to browsing.
 private struct OrderConfirmationView: View {
     let onContinueShopping: () -> Void
 
@@ -110,6 +113,7 @@ private struct OrderConfirmationView: View {
     }
 }
 
+/// One cart row: product name/price, a quantity stepper, and a swipe-to-remove action.
 private struct CartLineRow: View {
     let line: CartLine
     let product: Product?
@@ -142,6 +146,7 @@ private struct CartLineRow: View {
     }
 }
 
+/// A label/value row in the order summary, optionally emphasized (e.g. for the grand total).
 private struct SummaryRow: View {
     let label: String
     let value: Decimal

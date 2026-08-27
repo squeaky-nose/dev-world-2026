@@ -9,6 +9,7 @@
 
 import PackageDescription
 
+// SwiftPM manifest for the JNI bridge: builds shop-sdk into a dynamic library Android can load.
 let package = Package(
     name: "shop-sdk-android-bridge",
     products: [

@@ -7,6 +7,8 @@
 
 import Foundation
 
+/// Cart-level pricing summary produced by `PricingEngine`: priced lines plus discount,
+/// shipping, and grand-total figures.
 public struct CartTotals: Codable, Sendable, Equatable {
     public let lines: [CartLine]
     public let bulkDiscountedSubtotal: Decimal
@@ -16,6 +18,7 @@ public struct CartTotals: Codable, Sendable, Equatable {
     public let shipping: Decimal
     public let grandTotal: Decimal
 
+    /// Creates totals from already-computed values.
     public init(
         lines: [CartLine],
         bulkDiscountedSubtotal: Decimal,
@@ -34,6 +37,7 @@ public struct CartTotals: Codable, Sendable, Equatable {
         self.grandTotal = grandTotal
     }
 
+    /// Totals for an empty cart: every figure zeroed and no lines or promo code.
     public static var empty: CartTotals {
         CartTotals(
             lines: [],

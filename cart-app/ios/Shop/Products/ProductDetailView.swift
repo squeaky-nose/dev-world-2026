@@ -8,6 +8,7 @@
 import SwiftUI
 import ShopSDK
 
+/// Full-screen product detail: image, description, recipe ideas, a quantity stepper, and add-to-cart.
 struct ProductDetailView: View {
     @Bindable var viewModel: ProductDetailViewModel
     let cartViewModel: CartViewModel
@@ -54,7 +55,7 @@ struct ProductDetailView: View {
 
                     Button {
                         viewModel.addToCart()
-                        cartViewModel.orderPlaced = false
+                        cartViewModel.orderPlaced = false // Clear a stale confirmation screen from a prior order.
                         cartViewModel.refresh()
                     } label: {
                         Text(viewModel.didAddToCart ? "Added!" : "Add to Cart")

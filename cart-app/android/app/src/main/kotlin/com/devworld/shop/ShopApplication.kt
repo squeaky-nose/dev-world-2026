@@ -14,11 +14,14 @@ import coil.disk.DiskCache
 import com.devworld.shop.repo.ShopRepository
 import okhttp3.OkHttpClient
 
+/** App-wide singleton: owns the shop repository and configures Coil's shared image loader. */
 class ShopApplication : Application(), ImageLoaderFactory {
+    // Single shared repository instance backing every screen in the app.
     val repository: ShopRepository by lazy { ShopRepository() }
 
     // Wikimedia rejects requests with OkHttp's default User-Agent (HTTP 403); it requires
     // an identifying one per https://meta.wikimedia.org/wiki/User-Agent_policy.
+    /** Builds the app's Coil image loader with a Wikimedia-friendly User-Agent and a sized disk cache. */
     override fun newImageLoader(): ImageLoader =
         ImageLoader.Builder(this)
             .okHttpClient {

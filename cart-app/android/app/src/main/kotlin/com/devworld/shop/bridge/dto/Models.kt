@@ -9,6 +9,11 @@ package com.devworld.shop.bridge.dto
 
 import kotlinx.serialization.Serializable
 
+// Kotlin-side mirrors of the JSON shapes produced by ShopSDKAndroidBridge/Bridge.swift.
+// Monetary fields are Double here (JSON has no decimal type) even though the Swift side
+// uses Decimal internally; precision loss is not a practical concern at this scale.
+
+/** A single catalog item as decoded from the native bridge. */
 @Serializable
 data class Product(
     val id: String,
@@ -21,6 +26,7 @@ data class Product(
     val popularity: Double,
 )
 
+/** A single priced cart line as decoded from the native bridge. */
 @Serializable
 data class CartLine(
     val productId: String,
@@ -31,6 +37,7 @@ data class CartLine(
     val lineTotal: Double,
 )
 
+/** Cart-level pricing summary as decoded from the native bridge. */
 @Serializable
 data class CartTotals(
     val lines: List<CartLine>,
@@ -42,6 +49,7 @@ data class CartTotals(
     val grandTotal: Double,
 ) {
     companion object {
+        // Default UI state before the first native call resolves.
         val empty = CartTotals(
             lines = emptyList(),
             bulkDiscountedSubtotal = 0.0,
@@ -54,6 +62,7 @@ data class CartTotals(
     }
 }
 
+/** Outcome of a checkout attempt as decoded from the native bridge. */
 @Serializable
 data class CheckoutResult(
     val success: Boolean,
@@ -61,7 +70,9 @@ data class CheckoutResult(
     val message: String,
 )
 
+/** JSON shape the native bridge returns instead of throwing across the JNI boundary. */
 @Serializable
 data class ErrorEnvelope(val error: String)
 
+/** Thrown by ShopRepository when a native call returns an `ErrorEnvelope`. */
 class ShopSdkException(message: String) : Exception(message)

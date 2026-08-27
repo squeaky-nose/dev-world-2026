@@ -7,7 +7,9 @@
 
 import Foundation
 
+/// Static seed data for the demo shop's product catalog.
 enum ProductCatalog {
+    /// The full fixed list of products the app ships with, grouped by category (produce, dairy, pantry, etc).
     static let all: [Product] = [
         Product(
             id: "spinach",
