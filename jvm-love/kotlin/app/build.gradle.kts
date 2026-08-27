@@ -1,3 +1,10 @@
+//
+//  build.gradle.kts
+//  jvm-love
+//
+//  Created by Sushant Verma on 27/8/2026 for [/dev/world 2026](https://devworld.au/)
+//
+
 plugins {
     kotlin("jvm") version "2.2.20"
     application

@@ -192,13 +192,12 @@ raw line count.
   sdk install java 25-amzn
   ```
   Make sure `JAVA_HOME` points at it.
-- **Gradle** (used to drive the Kotlin build and to `publishToMavenLocal` the
-  vendored swift-java libraries). This project doesn't ship a Gradle
-  wrapper for swift-java itself, so a system Gradle is needed for `make setup`:
-  ```
-  brew install gradle
-  ```
-- **git** (to clone the pinned swift-java checkout in `make setup`).
+- **git** (to clone the pinned swift-java checkout in `make setup`). No
+  system-wide Gradle install is needed: `kotlin/app` drives its build through
+  its own committed wrapper (`./gradlew`), and the vendored swift-java
+  checkout `make setup` clones brings its own wrapper too -- `make setup`
+  runs swift-java's `./gradlew publishToMavenLocal` from inside
+  `vendor/swift-java`, not a system `gradle` binary.
 
 [`ospd.txt`](ospd.txt) (the Official Scrabble Players Dictionary, one word
 per line) at the project root is used as the default word list — fitting,
@@ -212,7 +211,7 @@ Exact versions this project is currently built and tested against:
 |---|---|
 | Swift | Apple Swift 6.5-dev (`arm64-apple-macosx`) |
 | JDK | 25 (Corretto 25.0.1) |
-| Gradle | 9.1.0 (wrapper, for `kotlin/app`) / system Gradle (for `make setup`'s swift-java build) |
+| Gradle | 9.1.0 (wrapper, for `kotlin/app`) / 9.4.0 (swift-java's own wrapper, for `make setup`'s build) |
 | Kotlin | 2.2.20 |
 | [swift-java](https://github.com/swiftlang/swift-java) | pinned to [`2dd2c60`](https://github.com/swiftlang/swift-java/commit/2dd2c6043f63d0d2cd99dfdcc8f058949f0309f3) (2026-08-11), just past the `0.5.1` tag |
 

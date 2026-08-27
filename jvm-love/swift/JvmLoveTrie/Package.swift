@@ -1,4 +1,12 @@
 // swift-tools-version: 6.0
+
+//
+//  Package.swift
+//  JvmLoveTrie
+//
+//  Created by Sushant Verma on 27/8/2026 for [/dev/world 2026](https://devworld.au/)
+//
+
 import CompilerPluginSupport
 import PackageDescription
 

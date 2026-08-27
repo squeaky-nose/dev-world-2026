@@ -15,6 +15,7 @@ import org.swift.swiftkit.ffm.AllocatingSwiftArena
 import kotlin.system.exitProcess
 import kotlin.system.measureNanoTime
 
+/** Cap on how many matched words each backend prints before collapsing the rest into "...and N more". */
 private const val MAX_DISPLAY_RESULTS = 20
 
 /**
@@ -87,6 +88,8 @@ private fun runSearch(
     swiftSearch: () -> WordSearchResult,
 ) {
     var kotlinWords: List<String> = emptyList()
+    // Kotlin has no FFM boundary to cross, so there's only one timing figure --
+    // this is directly comparable to Swift's *inner* (not outer) time below.
     val kotlinNanos = measureNanoTime { kotlinWords = kotlinSearch() }
     val kotlinUs = kotlinNanos / 1000.0
 
@@ -101,7 +104,11 @@ private fun runSearch(
     val swiftOuterUs = swiftOuterNanos / 1000.0
     val ffmOverheadUs = swiftOuterUs - swiftInnerUs
 
+    // Apples-to-apples: Kotlin's only figure vs Swift's *inner* figure, since
+    // neither includes any FFM crossing cost.
     val speedDiffUs = kotlin.math.abs(kotlinUs - swiftInnerUs)
+    // Percentage is expressed relative to whichever side was slower, so it reads
+    // as "X% slower than the winner" regardless of which backend won.
     val slowerUs = maxOf(kotlinUs, swiftInnerUs)
     val speedDiffPercent = if (slowerUs > 0) speedDiffUs / slowerUs * 100.0 else 0.0
     val speedComparison = when {

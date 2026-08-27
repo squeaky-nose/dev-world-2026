@@ -26,23 +26,28 @@ final class Node {
     var right: Node?
     var height = 1
 
+    /// Creates a leaf node holding `character`, with no children in either role (trie child or AVL sibling).
     init(character: Character) {
         self.character = character
     }
 }
 
+/// Height of `node`'s subtree in the sibling AVL tree; a missing (nil) child counts as height 0.
 private func height(_ node: Node?) -> Int {
     node?.height ?? 0
 }
 
+/// Recomputes `node`'s cached height from its two children -- must run bottom-up after any structural change.
 private func updateHeight(_ node: Node) {
     node.height = 1 + max(height(node.left), height(node.right))
 }
 
+/// AVL balance factor: left subtree height minus right. Magnitude > 1 means `node` needs rebalancing.
 private func balanceFactor(_ node: Node) -> Int {
     height(node.left) - height(node.right)
 }
 
+/// Standard AVL right rotation: promotes `y`'s left child to `y`'s position, fixing a left-heavy imbalance.
 private func rotateRight(_ y: Node) -> Node {
     let x = y.left!
     y.left = x.right
@@ -52,6 +57,7 @@ private func rotateRight(_ y: Node) -> Node {
     return x
 }
 
+/// Standard AVL left rotation: promotes `x`'s right child to `x`'s position, fixing a right-heavy imbalance.
 private func rotateLeft(_ x: Node) -> Node {
     let y = x.right!
     x.right = y.left
@@ -61,10 +67,15 @@ private func rotateLeft(_ x: Node) -> Node {
     return y
 }
 
+/// Restores the AVL invariant at `node` after an insert, returning the (possibly
+/// new) subtree root. A balance factor outside [-1, 1] means one side is at
+/// least two levels deeper than the other and needs a rotation to fix.
 private func rebalance(_ node: Node) -> Node {
-    let balance = balanceFactor(node)
+    let balance = balanceFactor(node) // >1 = left-heavy, <-1 = right-heavy, else already balanced
 
     if balance > 1 {
+        // Left-Right case: the left child itself leans right, so straightening it
+        // with a left rotation first turns this into a plain Left-Left case.
         if balanceFactor(node.left!) < 0 {
             node.left = rotateLeft(node.left!)
         }
@@ -72,6 +83,8 @@ private func rebalance(_ node: Node) -> Node {
     }
 
     if balance < -1 {
+        // Right-Left case: mirror image of the above -- straighten the right
+        // child with a right rotation first, then a plain Right-Right rotation fixes it.
         if balanceFactor(node.right!) > 0 {
             node.right = rotateRight(node.right!)
         }
@@ -103,6 +116,7 @@ private func avlInsert(_ root: Node?, _ character: Character) -> Node {
     return rebalance(root)
 }
 
+/// Iterative BST lookup of `character` among `root`'s siblings; O(log k) thanks to the AVL balance.
 private func avlFind(_ root: Node?, _ character: Character) -> Node? {
     var current = root
     while let node = current {
@@ -150,6 +164,7 @@ func scrabbleScore(_ word: String) -> Int {
 
 /// One character position in a wildcard pattern.
 enum Token {
+    /// Matches exactly this letter -- a tile already fixed on the board, not drawn from the rack.
     case literal(Character)
     /// Matches exactly one wildcard letter, drawn from the rack.
     case single
@@ -157,6 +172,7 @@ enum Token {
     case multi
 }
 
+/// Splits `pattern` into per-character `Token`s: `_` and `*` become wildcards, everything else a lowercased literal.
 func tokenize(_ pattern: String) -> [Token] {
     pattern.map { char in
         switch char {
@@ -196,11 +212,11 @@ private func matchExact(
         matchExact(child, tokens, tokenIndex + 1, &rack, wordSoFar + String(char), &seen, &results)
     case .single:
         for child in node.children() {
-            let remaining = rack[child.character] ?? 0
+            let remaining = rack[child.character] ?? 0 // how many of this letter the rack has left
             if remaining > 0 {
-                rack[child.character] = remaining - 1
+                rack[child.character] = remaining - 1 // consume one for this branch of the search
                 matchExact(child, tokens, tokenIndex + 1, &rack, wordSoFar + String(child.character), &seen, &results)
-                rack[child.character] = remaining
+                rack[child.character] = remaining // restore it before trying the next sibling child
             }
         }
     case .multi:
@@ -222,12 +238,12 @@ private func matchMulti(
     _ results: inout [String]
 ) {
     for child in node.children() {
-        let remaining = rack[child.character] ?? 0
+        let remaining = rack[child.character] ?? 0 // how many of this letter the rack has left
         if remaining > 0 {
-            rack[child.character] = remaining - 1
-            matchExact(child, tokens, tokenIndex + 1, &rack, wordSoFar + String(child.character), &seen, &results)
-            matchMulti(child, tokens, tokenIndex, &rack, wordSoFar + String(child.character), &seen, &results)
-            rack[child.character] = remaining
+            rack[child.character] = remaining - 1 // consume one letter to extend the `*` span by this child
+            matchExact(child, tokens, tokenIndex + 1, &rack, wordSoFar + String(child.character), &seen, &results) // try stopping `*` here
+            matchMulti(child, tokens, tokenIndex, &rack, wordSoFar + String(child.character), &seen, &results) // try consuming further
+            rack[child.character] = remaining // restore before trying the next sibling child
         }
     }
 }
@@ -244,19 +260,24 @@ public final class WordSearchResult {
     private let words: [String]
     private let timeMillis: Double
 
+    /// Wraps an already-scored-and-sorted `words` list together with the search's own `searchTimeMillis`.
     init(words: [String], searchTimeMillis: Double) {
         self.words = words
         self.timeMillis = searchTimeMillis
     }
 
+    /// Number of matched words -- paired with `word(at:)` since jextract's FFM
+    /// mode can't extract a Swift `Array` return value directly.
     public func wordCount() -> Int {
         words.count
     }
 
+    /// The matched word at `index` (0..<wordCount()); the indexed-getter workaround described on the type.
     public func word(at index: Int) -> String {
         words[index]
     }
 
+    /// How long the search itself took, in milliseconds, measured inside Swift with `ContinuousClock`.
     public func searchTimeMillis() -> Double {
         timeMillis
     }
@@ -272,8 +293,15 @@ public final class SwiftAVLScrabbleTrie {
     private var insertedCount = 0
     private var lastBuildTimeMillis: Double = 0
 
+    /// Creates an empty trie, ready for `buildFromFile`. Exposed as the jextract-generated
+    /// entry point the Kotlin side calls to construct the Swift trie in-process.
     public init() {}
 
+    /// Inserts `word` into the trie, lowercasing it first so lookups are
+    /// case-insensitive (see README's "Case sensitivity" section). Walks one
+    /// character at a time, growing each node's sibling AVL tree as needed,
+    /// and only increments `insertedCount` the first time a given word is
+    /// marked as ending here (a duplicate insert is a no-op count-wise).
     private func insert(_ word: Substring) {
         guard !word.isEmpty else { return }
         var node = root
@@ -318,7 +346,7 @@ public final class SwiftAVLScrabbleTrie {
     /// only the search itself, natively, using `ContinuousClock` -- see
     /// `WordSearchResult`.
     public func findExactMatches(_ pattern: String, _ rack: String) -> WordSearchResult {
-        let start = clock.now
+        let start = clock.now // marks the "inner" timing window -- pure search time, no FFM crossing included
         let tokens = tokenize(pattern)
         var rackCounts: [Character: Int] = [:]
         for char in rack.lowercased() { rackCounts[char, default: 0] += 1 }
@@ -331,15 +359,18 @@ public final class SwiftAVLScrabbleTrie {
         return WordSearchResult(words: results, searchTimeMillis: millis(since: start))
     }
 
+    /// Converts a `ContinuousClock` elapsed duration (seconds + attoseconds) since `start` into milliseconds.
     private func millis(since start: ContinuousClock.Instant) -> Double {
-        let components = (clock.now - start).components
+        let components = (clock.now - start).components // (seconds, attoseconds) -- ContinuousClock's native precision
         return Double(components.seconds) * 1000 + Double(components.attoseconds) / 1_000_000_000_000_000
     }
 
+    /// Number of distinct words inserted so far (duplicates don't double-count).
     public func wordCount() -> Int {
         insertedCount
     }
 
+    /// How long the most recent `buildFromFile` call took to build the trie, in milliseconds.
     public func buildTimeMillis() -> Double {
         lastBuildTimeMillis
     }

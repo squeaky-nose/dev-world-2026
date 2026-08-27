@@ -1,3 +1,10 @@
+#
+#  Makefile
+#  jvm-love
+#
+#  Created by Sushant Verma on 27/8/2026 for [/dev/world 2026](https://devworld.au/)
+#
+
 # Build/run workflow for the two-trie Kotlin+Swift interop demo.
 #
 # One JVM process hosts both tries: `AvlTrie` runs natively in Kotlin, and
