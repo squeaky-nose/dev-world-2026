@@ -44,12 +44,14 @@ import com.devworld.shop.ui.products.ProductDetailScreen
 import com.devworld.shop.ui.products.ProductListScreen
 import com.devworld.shop.ui.products.ProductListViewModel
 
+/** Single-activity host: builds the shared view models and hosts the Compose nav graph. */
 class MainActivity : ComponentActivity() {
 
     private val factory by lazy { ShopViewModelFactory((application as ShopApplication).repository) }
     private val productListViewModel by viewModels<ProductListViewModel> { factory }
     private val cartViewModel by viewModels<CartViewModel> { factory }
 
+    /** Sets the Compose content to the app's nav host, wrapped in the Material theme. */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -60,10 +62,17 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// Navigation route for the product list screen.
 private const val ROUTE_PRODUCTS = "products"
+// Navigation route for the cart screen.
 private const val ROUTE_CART = "cart"
+// Navigation route for the product detail screen.
 private const val ROUTE_DETAIL = "productDetail"
 
+/**
+ * Root nav graph: switches between the product list, cart, and product detail screens, and
+ * hides the bottom bar while on the detail screen.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ShopNavHost(
@@ -71,6 +80,8 @@ private fun ShopNavHost(
     cartViewModel: CartViewModel,
 ) {
     val navController = rememberNavController()
+    // Passed to the detail route via shared state rather than a nav argument, since Product
+    // isn't a simple serializable nav-arg type here.
     var selectedProduct by remember { mutableStateOf<Product?>(null) }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -113,6 +124,7 @@ private fun ShopNavHost(
     }
 }
 
+/** Bottom navigation bar with Products/Cart tabs; the Cart tab shows a badge with the line count. */
 @Composable
 private fun ShopBottomBar(navController: NavHostController, currentRoute: String?, cartViewModel: CartViewModel) {
     val totals by cartViewModel.totals.collectAsState()

@@ -22,12 +22,15 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/** End-to-end instrumented UI tests driving the real app: filtering/sorting the product list,
+ * and the full browse-add-promo-checkout flow. */
 @RunWith(AndroidJUnit4::class)
 class ShopFlowTest {
 
     @get:Rule
     val composeTestRule = createAndroidComposeRule<MainActivity>()
 
+    /** Resets the native cart singleton before each test so tests don't leak state across runs. */
     @Before
     fun clearCart() {
         // The native cart singleton persists for the lifetime of the app process, which
@@ -50,6 +53,7 @@ class ShopFlowTest {
         composeTestRule.onNodeWithTag("sortOption_$sortValue").performClick()
     }
 
+    /** Verifies a tag filter stays applied across a navigation round-trip that mutates the cart. */
     @Test
     fun productFilterAppliesAndPersistsAcrossCartUpdates() {
         // Potatoes (vegetable) and Bananas (fruit) both rank near the top under the default
@@ -73,6 +77,7 @@ class ShopFlowTest {
         composeTestRule.onNodeWithText("Potatoes").assertDoesNotExist()
     }
 
+    /** Verifies the default sort is popularity, and switching to A-Z actually reorders the list. */
     @Test
     fun defaultSortIsPopularityAndSortDropdownWorks() {
         // Default sort is popularity; Bananas has the highest hardcoded popularity (0.98).
@@ -86,6 +91,9 @@ class ShopFlowTest {
         composeTestRule.onNodeWithText("Avocado").assertExists()
     }
 
+    /** Full happy-path flow: add multiple products (crossing the bulk-discount threshold),
+     * verify computed totals, apply the promo code, verify the discounted total, then checkout
+     * and confirm either an order-placed screen or a graceful failure message appears. */
     @Test
     fun browseAddToCartApplyPromoAndCheckout() {
         // Add 6x Potatoes (crosses the >5 bulk-discount threshold) and 2x Tomatoes -- both

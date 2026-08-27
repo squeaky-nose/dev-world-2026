@@ -8,9 +8,12 @@
 import Testing
 @testable import ShopSDK
 
+/// Integration test for `CheckoutService` against the live checkout endpoint.
 @Suite("CheckoutService")
 struct CheckoutServiceTests {
 
+    /// Verifies checkout actually performs a network round-trip and gets back an HTTP status,
+    /// without depending on what that status is (the endpoint is a third-party test service).
     @Test("checkout() POSTs the cart JSON to the checkout endpoint and gets an HTTP response")
     func checkoutRoundTrips() async throws {
         let sdk = ShopSDK()

@@ -8,10 +8,12 @@
 import SwiftUI
 import ShopSDK
 
+/// App entry point: owns the single SDK instance for the process and configures URL caching.
 @main
 struct ShopApp: App {
     private let sdk = ShopSDK()
 
+    /// Configures a larger `URLCache` before any view loads product images.
     init() {
         // AsyncImage loads product images through URLSession.shared, which reads/writes
         // through URLCache.shared. The default shared cache is small (a few MB), so on a

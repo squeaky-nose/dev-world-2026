@@ -10,13 +10,17 @@ import Foundation
 import FoundationNetworking
 #endif
 
+/// Submits cart totals to the checkout endpoint over HTTP.
 final class CheckoutService: Sendable {
     private let checkoutURL: URL
 
+    /// Creates a service that POSTs checkout requests to `checkoutURL`.
     init(checkoutURL: URL) {
         self.checkoutURL = checkoutURL
     }
 
+    /// POSTs the cart totals as JSON and maps the HTTP response into a `CheckoutResult`.
+    /// Throws `ShopSDKError.networkError` on encode or transport failure.
     func checkout(totals: CartTotals) async throws -> CheckoutResult {
         var request = URLRequest(url: checkoutURL)
         request.httpMethod = "POST"
@@ -44,6 +48,8 @@ final class CheckoutService: Sendable {
         }
     }
 
+    /// Blocking wrapper around `checkout(totals:)` for non-async callers: spawns a `Task` and
+    /// blocks the current thread on a semaphore until it completes.
     func checkoutSync(totals: CartTotals) -> CheckoutResult {
         let box = ResultBox()
         let semaphore = DispatchSemaphore(value: 0)
@@ -61,6 +67,7 @@ final class CheckoutService: Sendable {
         return box.result
     }
 
+    /// Mutable box used to hand a result back out of the detached `Task` in `checkoutSync`.
     private final class ResultBox: @unchecked Sendable {
         var result = CheckoutResult(success: false, httpStatusCode: nil, message: "Checkout did not complete.")
     }

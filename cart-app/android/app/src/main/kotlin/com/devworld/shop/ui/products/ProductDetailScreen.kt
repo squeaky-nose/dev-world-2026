@@ -40,6 +40,7 @@ import coil.compose.AsyncImage
 import com.devworld.shop.bridge.dto.Product
 import com.devworld.shop.ui.cart.CartViewModel
 
+/** Full-screen product detail: image, description, recipe ideas, a quantity stepper, and add-to-cart. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductDetailScreen(
@@ -48,6 +49,8 @@ fun ProductDetailScreen(
     onBack: () -> Unit,
 ) {
     var quantity by remember(product.id) { mutableIntStateOf(1) }
+    // Counter (not a Boolean) so the "Added!" label logic stays uniform even if add-to-cart
+    // is tapped more than once for the same product.
     var addedLabel by remember(product.id) { mutableIntStateOf(0) }
 
     Scaffold(

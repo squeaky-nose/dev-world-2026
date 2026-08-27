@@ -41,6 +41,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.devworld.shop.bridge.dto.CartLine
 
+/** Cart screen: line items, promo code entry, order summary, and checkout, or an order
+ * confirmation once checkout succeeds. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CartScreen(viewModel: CartViewModel) {
@@ -143,6 +145,7 @@ fun CartScreen(viewModel: CartViewModel) {
     }
 }
 
+/** Success screen shown after a completed checkout, with a button to reset back to browsing. */
 @Composable
 private fun OrderConfirmation(onContinueShopping: () -> Unit, modifier: Modifier = Modifier) {
     Column(
@@ -172,6 +175,7 @@ private fun OrderConfirmation(onContinueShopping: () -> Unit, modifier: Modifier
     }
 }
 
+/** One cart row: product name/price, +/- quantity controls, and a remove action. */
 @Composable
 private fun CartLineRow(
     line: CartLine,
@@ -200,6 +204,7 @@ private fun CartLineRow(
     }
 }
 
+/** A label/value row in the order summary, optionally emphasized (e.g. for the grand total). */
 @Composable
 private fun SummaryRow(label: String, value: Double, emphasized: Boolean = false) {
     Row(

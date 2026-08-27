@@ -9,6 +9,7 @@
 
 import PackageDescription
 
+// SwiftPM manifest for the shop-sdk library and its test target.
 let package = Package(
     name: "shop-sdk",
     platforms: [

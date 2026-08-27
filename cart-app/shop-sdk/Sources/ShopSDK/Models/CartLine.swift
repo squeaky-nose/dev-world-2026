@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// A single priced line in the cart: one product, its quantity, and the resulting subtotal/discount/total.
 public struct CartLine: Codable, Sendable, Equatable {
     public let productId: String
     public let quantity: Int
@@ -15,6 +16,7 @@ public struct CartLine: Codable, Sendable, Equatable {
     public let lineDiscount: Decimal
     public let lineTotal: Decimal
 
+    /// Creates a cart line from already-computed pricing values.
     public init(
         productId: String,
         quantity: Int,

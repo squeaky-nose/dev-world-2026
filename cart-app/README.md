@@ -1,4 +1,4 @@
-# Shop
+# cart-app
 
 A demo grocery app built twice — once in SwiftUI for iOS, once in Kotlin/Compose for Android — sharing a single Swift business-logic package, **shop-sdk**. The interesting part: the Android app doesn't reimplement the logic in Kotlin. It calls the *actual compiled Swift code* through JNI, cross-compiled to Android via the official [Swift SDK for Android](https://www.swift.org/documentation/articles/swift-sdk-for-android-getting-started.html).
 
@@ -112,7 +112,7 @@ make help          # list every target
 
 ## Testing
 
-- `make shop-sdk-test` — 32 unit tests covering the pricing engine (bulk discount, promo code, shipping threshold), cart mutations, catalog/tag/sort integrity, and a live round-trip POST to the checkout endpoint.
+- `make shop-sdk-test` — 33 unit tests covering the pricing engine (bulk discount, promo code, shipping threshold), cart mutations, catalog/tag/sort integrity, and a live round-trip POST to the checkout endpoint.
 - `make ios-test` — an XCUITest suite (`ios/ShopUITests/`) driving the real UI via the Filter/Sort dropdowns: (1) filter by tag, then mutate the cart, confirming the filter survives — guards against a regression where the product list's view model was rebuilt on every re-render, silently resetting the filter; (2) confirm the default sort is Popularity and that switching to A–Z reorders the list; (3) a full browse → add 6× an item (crosses the bulk-discount threshold) → add another → apply the `devworld` promo → checkout flow, asserting the exact computed totals along the way.
 - `make android-test` — a Compose instrumented UI test suite (`android/app/src/androidTest/`) mirroring the iOS suite exactly: the same filter-persistence check, the same default-sort/A–Z check, and the same browse → cart → promo → checkout scenario, asserting the same computed totals. Because the native Swift cart singleton persists for the life of the app process (which instrumentation tests share across `@Test` methods), each test resets it via `ShopSdkBridge.nativeClearCart()` in an `@Before` step.
 - Both platforms independently reach the same totals from the same cart scenario (6× Potatoes + 2× Tomatoes → $21.68, then $15.84 after the promo code) — the strongest evidence the shared Swift logic runs identically on both, not two separate implementations.

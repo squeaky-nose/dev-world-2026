@@ -7,6 +7,8 @@
 
 import XCTest
 
+/// End-to-end UI tests driving the real app: filtering/sorting the product list, and the
+/// full browse-add-promo-checkout flow.
 final class ShopFlowUITests: XCTestCase {
 
     /// Product rows are exposed as a single merged button (e.g. "Potatoes, Vegetable, USD 1.20"),
@@ -38,6 +40,8 @@ final class ShopFlowUITests: XCTestCase {
         app.buttons[label].tap()
     }
 
+    /// Verifies a tag filter stays applied across a navigation round-trip that mutates the
+    /// cart (regression test for the filter resetting when the view model got recreated).
     func testProductFilterAppliesAndPersistsAcrossCartUpdates() {
         let app = XCUIApplication()
         app.launch()
@@ -64,6 +68,7 @@ final class ShopFlowUITests: XCTestCase {
         XCTAssertFalse(productButton(app, named: "Potatoes").exists, "Fruit filter should still be applied after a cart update")
     }
 
+    /// Verifies the default sort is popularity, and switching to A-Z actually reorders the list.
     func testDefaultSortIsPopularityAndSortDropdownWorks() {
         let app = XCUIApplication()
         app.launch()
@@ -78,6 +83,9 @@ final class ShopFlowUITests: XCTestCase {
         XCTAssertTrue(productButton(app, named: "Avocado").waitForExistence(timeout: 5))
     }
 
+    /// Full happy-path flow: add multiple products (crossing the bulk-discount threshold),
+    /// verify computed totals, apply the promo code, verify the discounted total, then checkout
+    /// and confirm either an order-placed screen or a graceful failure message appears.
     func testBrowseAddToCartApplyPromoAndCheckout() {
         let app = XCUIApplication()
         app.launch()

@@ -9,9 +9,11 @@ import Foundation
 import Testing
 @testable import ShopSDK
 
+/// Unit tests for `CartManager`'s quantity bookkeeping and promo-code state.
 @Suite("CartManager")
 struct CartManagerTests {
 
+    /// Adding the same product twice should sum quantities into a single line, not create duplicates.
     @Test("Adding to cart accumulates quantity")
     func addAccumulates() throws {
         let cart = CartManager(catalog: ProductCatalogStore())
@@ -22,6 +24,7 @@ struct CartManagerTests {
         #expect(lines[0].quantity == 5)
     }
 
+    /// Adding a product id the catalog doesn't recognize should fail with `productNotFound`.
     @Test("Adding an unknown product throws productNotFound")
     func addUnknownProduct() {
         let cart = CartManager(catalog: ProductCatalogStore())
@@ -30,6 +33,7 @@ struct CartManagerTests {
         }
     }
 
+    /// A zero (non-positive) quantity on `addToCart` should be rejected rather than silently no-op.
     @Test("Adding a non-positive quantity throws invalidQuantity")
     func addNonPositiveQuantity() {
         let cart = CartManager(catalog: ProductCatalogStore())
@@ -38,6 +42,7 @@ struct CartManagerTests {
         }
     }
 
+    /// Setting a line's quantity to 0 should remove it from the cart entirely.
     @Test("setQuantity to zero removes the line")
     func setQuantityZeroRemoves() throws {
         let cart = CartManager(catalog: ProductCatalogStore())
@@ -46,6 +51,7 @@ struct CartManagerTests {
         #expect(cart.cartLines().isEmpty)
     }
 
+    /// Explicitly removing a product should clear its line.
     @Test("removeFromCart clears the line")
     func removeFromCart() throws {
         let cart = CartManager(catalog: ProductCatalogStore())
@@ -54,6 +60,7 @@ struct CartManagerTests {
         #expect(cart.cartLines().isEmpty)
     }
 
+    /// Clearing the cart should drop every line regardless of how many were added.
     @Test("clearCart empties all lines")
     func clearCart() throws {
         let cart = CartManager(catalog: ProductCatalogStore())
@@ -63,6 +70,7 @@ struct CartManagerTests {
         #expect(cart.cartLines().isEmpty)
     }
 
+    /// A valid promo code should be reflected back on the computed totals.
     @Test("totals reflect promo code applied to the cart")
     func totalsReflectPromo() throws {
         let cart = CartManager(catalog: ProductCatalogStore())
@@ -72,9 +80,13 @@ struct CartManagerTests {
     }
 }
 
+/// End-to-end tests for the `ShopSDK` facade covering a full browse-to-checkout flow.
 @Suite("ShopSDK facade")
 struct ShopSDKFacadeTests {
 
+    /// Exercises browsing/filtering the catalog, adding items, applying a promo, and
+    /// verifying the resulting grand total (which bakes in the bulk-discount, promo, and
+    /// shipping rules from `PricingEngine`).
     @Test("Full flow: browse, filter, add to cart, apply promo, compute totals")
     func fullFlow() throws {
         let sdk = ShopSDK()
@@ -92,6 +104,7 @@ struct ShopSDKFacadeTests {
         #expect(sdk.cartTotals() == .empty)
     }
 
+    /// `setQuantity` called through the facade should update the underlying cart line in place.
     @Test("setQuantity on the facade updates an existing line")
     func facadeSetQuantity() throws {
         let sdk = ShopSDK()

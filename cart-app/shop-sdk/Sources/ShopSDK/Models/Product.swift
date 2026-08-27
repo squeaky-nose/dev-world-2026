@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// A single catalog item: display info, price, tags, and recipe suggestions.
 public struct Product: Codable, Sendable, Identifiable, Equatable {
     public let id: String
     public let name: String
@@ -18,6 +19,7 @@ public struct Product: Codable, Sendable, Identifiable, Equatable {
     /// Hardcoded popularity score in 0...1, 1 being most popular. Used as the default sort order.
     public let popularity: Double
 
+    /// Creates a product from its catalog fields.
     public init(
         id: String,
         name: String,

@@ -51,8 +51,10 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.devworld.shop.bridge.dto.Product
 
+/** Capitalizes a raw tag string (e.g. "vegetable") for display (e.g. "Vegetable"). */
 private fun tagDisplayLabel(tag: String): String = tag.replaceFirstChar { it.uppercase() }
 
+/** Human-readable label for a raw sort option string, used in the sort menu. */
 private fun sortDisplayLabel(sortOption: String): String = when (sortOption) {
     "popularity" -> "Popularity"
     "nameAscending" -> "A–Z"
@@ -60,6 +62,8 @@ private fun sortDisplayLabel(sortOption: String): String = when (sortOption) {
     else -> sortOption
 }
 
+/** Scrollable product list with a combined filter/sort menu in the top bar; tapping a row
+ * navigates to that product's detail screen. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductListScreen(
@@ -105,8 +109,11 @@ fun ProductListScreen(
     }
 }
 
+/** Which level of the nested filter/sort dropdown is currently showing, if any. */
 private enum class MenuLevel { None, Main, Filter, Sort }
 
+/** Top-bar icon that opens a nested menu: top-level Filter/Sort entries, each expanding into
+ * its own list of selectable options. */
 @Composable
 private fun FilterSortMenu(
     tagLabel: String,
@@ -177,6 +184,7 @@ private fun FilterSortMenu(
     }
 }
 
+/** Renders a menu item's label, adding a checkmark when it's the active selection. */
 @Composable
 private fun MenuOptionLabel(text: String, isSelected: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -189,6 +197,7 @@ private fun MenuOptionLabel(text: String, isSelected: Boolean) {
     }
 }
 
+/** A single row in the product list: thumbnail, name, tags, and price. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ProductRow(product: Product, onClick: () -> Unit) {

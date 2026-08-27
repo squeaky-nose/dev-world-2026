@@ -13,7 +13,9 @@ import com.devworld.shop.repo.ShopRepository
 import com.devworld.shop.ui.cart.CartViewModel
 import com.devworld.shop.ui.products.ProductListViewModel
 
+/** Constructs the app's view models with the shared repository injected, for use with `viewModels { }`. */
 class ShopViewModelFactory(private val repository: ShopRepository) : ViewModelProvider.Factory {
+    /** Instantiates the requested view model type; throws for any type this factory doesn't know. */
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return when {

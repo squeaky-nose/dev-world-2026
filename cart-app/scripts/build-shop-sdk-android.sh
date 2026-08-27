@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+#
+#  build-shop-sdk-android.sh
+#  cart-app
+#
+#  Created by Sushant Verma on 27/8/2026 for [/dev/world 2026](https://devworld.au/)
+#
+
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

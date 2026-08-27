@@ -8,6 +8,8 @@
 import SwiftUI
 import ShopSDK
 
+/// Scrollable product list with a combined filter/sort menu in the nav bar; tapping a row
+/// pushes into that product's detail screen.
 struct ProductListView: View {
     @Bindable var viewModel: ProductListViewModel
     let cartViewModel: CartViewModel
@@ -31,6 +33,7 @@ struct ProductListView: View {
         }
     }
 
+    /// Toolbar menu combining tag filtering and sort selection into one nested menu control.
     private var filterSortMenu: some View {
         Menu {
             Menu {
@@ -73,10 +76,12 @@ struct ProductListView: View {
         .accessibilityIdentifier("filterSortMenuButton")
     }
 
+    /// The current filter's display text, "All" when no tag is selected.
     private var filterLabel: String {
         viewModel.selectedTag?.rawValue.capitalized ?? "All"
     }
 
+    /// Renders a menu item's label, adding a checkmark when it's the active selection.
     @ViewBuilder
     private func menuLabel(_ text: String, isSelected: Bool) -> some View {
         if isSelected {
@@ -87,6 +92,7 @@ struct ProductListView: View {
     }
 }
 
+/// Human-readable labels for `SortOption`, used in the sort menu.
 private extension SortOption {
     var displayLabel: String {
         switch self {
@@ -97,6 +103,7 @@ private extension SortOption {
     }
 }
 
+/// A single row in the product list: thumbnail, name, tags, and price.
 private struct ProductRow: View {
     let product: Product
 
