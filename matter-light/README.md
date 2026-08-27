@@ -1,6 +1,11 @@
-# esp32-led-blink-sdk
+# matter-light
 
-See [Blinking an LED on the ESP32](https://docs.swift.org/embedded/documentation/embedded/esp32guide) for documentation on this example.
+An Embedded Swift firmware for the ESP32-C6 that implements a Matter-commissionable
+smart light on top of [esp-matter](https://github.com/espressif/esp-matter)/connectedhomeip.
+The device advertises itself over BLE for commissioning, exposes an on/off light endpoint
+to any Matter controller (Apple Home, Google Home, Alexa, etc.), and separately polls a
+remote HTTP endpoint to optionally log every on/off state change. See the sections below
+for pairing, resetting, and the remote-logging HTTP contract.
 
 ## Prerequisites
 
@@ -110,7 +115,7 @@ those aren't derived from NVS state).
 ## Remote logging
 
 [`RemoteLogger`](main/RemoteLog.swift) posts on/off state changes and polls for remote commands
-over plain HTTP, using URLs hardcoded in [Main.swift](main/Main.swift:8-9):
+over plain HTTP, using URLs hardcoded in [Main.swift](main/Main.swift:18-20):
 
 ```swift
 let remoteLogger = RemoteLogger(
@@ -154,16 +159,30 @@ substring-matching "true"/"false" anywhere in the raw text.
 The [Makefile](Makefile) is a thin wrapper around `idf.py` and [`scripts/deploy.sh`](scripts/deploy.sh):
 
 - `ESP_IDF_DIR` points at your ESP-IDF checkout (default `~/.espressif/v6.0.2/esp-idf`,
-  see Prerequisites above). Override it inline if yours lives elsewhere:
+  see Prerequisites above), and `ESP_MATTER_PATH` points at your esp-matter checkout
+  (default `~/esp/esp-matter`). Override either inline if yours live elsewhere:
   ```
-  make build ESP_IDF_DIR=/path/to/esp-idf
+  make build ESP_IDF_DIR=/path/to/esp-idf ESP_MATTER_PATH=/path/to/esp-matter
   ```
-- Every target sources `$ESP_IDF_DIR/export.sh` before running `idf.py`, but only if
-  `IDF_PATH` isn't already set in your shell — so it's cheap to run repeatedly even
-  inside an existing ESP-IDF environment.
+- `build`, `menuconfig`, `clean`, and `fullclean` source `$ESP_IDF_DIR/export.sh` and
+  `$ESP_MATTER_PATH/export.sh` before running `idf.py`, but only if `IDF_PATH`/
+  `ESP_MATTER_PATH` aren't already set in your shell — so it's cheap to run repeatedly
+  even inside an existing ESP-IDF/esp-matter environment. `flash`, `monitor`, and
+  `erase` instead delegate to `scripts/deploy.sh`, which always sources both
+  `export.sh` scripts itself (see below).
+- The Makefile also prepends `~/esp/cmake329-bin` (a cmake 3.29.6 binary, see
+  Prerequisites — Homebrew's cmake 4.x breaks connectedhomeip's GN/ninja build) and
+  esp-matter's connectedhomeip Pigweed-bootstrapped `gn`/`ninja` directory to `PATH`.
+- `build` and `menuconfig` first make sure `build/CMakeCache.txt` exists, running
+  `idf.py set-target esp32c6` (after clearing out any incomplete `build/`) if not —
+  needed because `CMakeLists.txt` reads `IDF_TARGET` before it would normally be
+  seeded from `sdkconfig`, so a missing/incomplete build dir (e.g. after `fullclean`,
+  or a fresh checkout) otherwise fails with "Unsupported IDF_TARGET". `deploy.sh`
+  does the same check before flashing.
 - `flash` and `monitor` call `scripts/deploy.sh` directly instead of depending on
   `build`, since `idf.py flash`/`monitor` already rebuild anything stale themselves;
-  that avoids paying for a second `idf.py` startup.
+  that avoids paying for a second `idf.py` startup. `erase` calls
+  `scripts/deploy.sh erase` (see Resetting the device above).
 - `clean` removes build artifacts but keeps the `build/` directory and CMake cache;
   `fullclean` removes the whole `build/` directory. Neither touches
   `managed_components/` (the component-manager's dependency cache) — delete that

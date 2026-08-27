@@ -10,6 +10,8 @@
 // state changes while enabled. Uses esp_http_client's C API directly rather
 // than a C++ shim -- it's a plain C API, so it bridges into Swift cleanly.
 
+/// Fixed-size buffer used to read HTTP response bodies; responses longer than
+/// this are truncated.
 private let responseBufferSize = 256
 
 // Performs a synchronous GET and returns the response body (empty string on
@@ -108,11 +110,17 @@ func httpPost(url: String, jsonBody: String) {
   }
 }
 
+/// Polls a remote endpoint for a logging-enabled flag and, while enabled,
+/// POSTs a JSON log entry to a remote endpoint whenever the light's on/off
+/// state changes. See the README's "Remote logging" section for the full
+/// poll/log HTTP contract.
 final class RemoteLogger {
   /// GET endpoint polled every 5s to check whether logging is enabled.
   let pollURL: String
   /// POST endpoint that state-change log entries (JSON body) are sent to.
   let logURL: String
+  /// Last known logging-enabled state from `poll()`; gates whether
+  /// `logStateChange(on:)` actually sends anything.
   var loggingEnabled: Bool = false
 
   /// - Parameters:

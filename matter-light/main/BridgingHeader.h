@@ -36,6 +36,7 @@
 // valid header-name token there). We don't need any mbedtls types though:
 // esp_http_client_config_t.crt_bundle_attach is just `esp_err_t (*)(void*)`,
 // so declare the one function directly instead of including the header.
+// Attaches the default TLS certificate bundle to an esp_http_client config (used for HTTPS remote-log requests).
 extern "C" esp_err_t esp_crt_bundle_attach(void *conf);
 
 // ESP Matter
@@ -49,8 +50,10 @@ extern "C" esp_err_t esp_crt_bundle_attach(void *conf);
 // turns out to not be the case when importing these headers in Swift. Let's manually declare strnlen as a workaround.
 //
 // connectedhomeip/src/credentials/FabricTable.h:82:69: error: use of undeclared identifier 'strnlen'
+// Manual declaration of the standard strnlen(), otherwise unavailable to FabricTable.h in this build.
 extern "C" size_t strnlen(const char *s, size_t maxlen);
 // esp-matter/components/esp_matter/esp_matter_client.h:57:26: error: use of undeclared identifier 'strdup'
+// Manual declaration of the standard strdup(), otherwise unavailable to esp_matter_client.h in this build.
 extern "C" char *strdup(const char *s1);
 
 #include <esp_matter.h>

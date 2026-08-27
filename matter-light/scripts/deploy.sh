@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+#
+#  deploy.sh
+#  matter-light
+#
+#  Created by Sushant Verma on 27/8/2026 for [/dev/world 2026](https://devworld.au/)
+#
+
 # Build and flash the firmware to a connected ESP32-C6 board.
 #
 # Usage:
