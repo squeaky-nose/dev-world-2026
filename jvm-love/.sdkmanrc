@@ -1,0 +1,4 @@
+# Enable auto-env (see README -> Prerequisites) or run `sdk env` manually
+# in this directory to switch your shell to this JDK. Matches the JAVA_HOME
+# pin in the Makefile -- keep both in sync if you ever bump the version.
+java=25.0.1-amzn

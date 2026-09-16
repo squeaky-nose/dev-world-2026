@@ -8,7 +8,7 @@
 .DEFAULT_GOAL := help
 
 # --- Overridable configuration ---------------------------------------------
-XCODE_DEVELOPER_DIR ?= /Applications/Xcode-27.0.0-Beta.4.app/Contents/Developer
+XCODE_DEVELOPER_DIR ?= /Applications/Xcode-27.0.0-RC.app/Contents/Developer
 IOS_SIMULATOR_NAME  ?= iPhone 17
 IOS_BUNDLE_ID       ?= com.devworld.shop
 IOS_DERIVED_DATA    := $(CURDIR)/ios/DerivedData

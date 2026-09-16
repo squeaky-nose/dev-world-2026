@@ -186,12 +186,22 @@ raw line count.
   swiftly install main-snapshot
   ```
 - **JDK 25+** — required by swift-java's FFM mode ([JEP 454](https://openjdk.org/jeps/454)
-  was finalized in JDK 22, but swift-java validates against 25). Install via
-  [SDKMAN!](https://sdkman.io/):
+  was finalized in JDK 22, but swift-java validates against 25).
+  **[SDKMAN!](https://sdkman.io/) is the suggested way to install and manage
+  it:**
   ```
   sdk install java 25-amzn
   ```
-  Make sure `JAVA_HOME` points at it.
+  This repo includes an [`.sdkmanrc`](.sdkmanrc) pinning `java=25.0.1-amzn`.
+  Setting `sdkman_auto_env=true` in `~/.sdkman/etc/config` is suggested so
+  SDKMAN switches your shell to it automatically on `cd` into this
+  directory, rather than needing a manual `sdk env` every time (or `sdk env`
+  once per shell session if you'd rather not enable that globally). Either
+  way, make sure `JAVA_HOME` ends up pointing at it. The Makefile also pins
+  `JAVA_HOME` to this same JDK independently (see "Known rough edges" below)
+  so `make build`/`make run` work even without SDKMAN's auto-env, but that
+  only covers things run through `make` — `sdk env`/auto-env is what keeps
+  `javac`/`java`/`gradlew` correct when used directly.
 - **git** (to clone the pinned swift-java checkout in `make setup`). No
   system-wide Gradle install is needed: `kotlin/app` drives its build through
   its own committed wrapper (`./gradlew`), and the vendored swift-java
@@ -242,6 +252,10 @@ exactly the format `ospd.txt` is already in.
 
 ## How the Makefile works
 
+- Every target runs with `JAVA_HOME` pinned to a JDK 25 SDKMAN install
+  (`?=`, so `make build JAVA_HOME=/path/to/jdk25` overrides it), rather than
+  trusting whatever the shell's ambient `JAVA_HOME`/`PATH java` happens to
+  resolve to -- see "Known rough edges" below for the failure this avoids.
 - `make setup` clones [`swiftlang/swift-java`](https://github.com/swiftlang/swift-java)
   into `vendor/swift-java` at the exact commit pinned above (skipped if that
   directory already exists — re-run after `make distclean` to re-pin), then
@@ -283,3 +297,26 @@ exactly the format `ospd.txt` is already in.
   pulling prebuilt artifacts, since none are published. Expect it to take
   several minutes and to need a real network connection; subsequent
   `make build`/`make run` calls don't repeat this work.
+- **`UnsupportedClassVersionError` at runtime, not build time, if the "wrong"
+  JDK becomes your shell's default.** Compiled classes target bytecode
+  release 24 (see the `JVM_25` entry above), so running them needs a JDK 24+
+  runtime -- but *nothing* enforces this at the point something changes your
+  shell's active `java`. If e.g. `sdk default java` gets pointed at an older
+  JDK by an unrelated project, `make build`/`make run` are unaffected
+  (Gradle uses the Makefile's own pinned `JAVA_HOME`, see "How the Makefile
+  works" above) but invoking the built launcher script directly, or running
+  `java`/`gradlew` outside `make` entirely, would fail with something like:
+  ```
+  Error: LinkageError occurred while loading main class love.jvm.MainKt
+      java.lang.UnsupportedClassVersionError: love/jvm/MainKt has been
+      compiled by a more recent version of the Java Runtime (class file
+      version 68.0), this version of the Java Runtime only recognizes
+      class file versions up to 65.0
+  ```
+  (68.0 = Java 24, 65.0 = Java 21 -- class file major version is always
+  `44 + Java version`.) The [Makefile](Makefile) defends against this by
+  pinning `JAVA_HOME` itself (`?=`, overridable) rather than trusting the
+  shell's ambient value, so `make build`/`make run` aren't affected even if
+  your default JDK changes elsewhere. Running `java`/`gradlew` *directly*,
+  outside `make`, still depends on your shell's active JDK -- that's what
+  the `.sdkmanrc`/`sdk env` note above is for.
